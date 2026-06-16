@@ -106,6 +106,68 @@ describe("kiban config", () => {
     );
   });
 
+  it("infers services from compose files", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-compose-"));
+    await fs.writeJson(path.join(root, "package.json"), {
+      name: "with-db",
+      scripts: {
+        dev: "next dev"
+      }
+    });
+    await fs.writeFile(
+      path.join(root, "compose.yaml"),
+      [
+        "services:",
+        "  postgres:",
+        "    image: postgres:16",
+        "    ports:",
+        '      - "5432:5432"',
+        "    environment:",
+        "      POSTGRES_PASSWORD: postgres",
+        "      POSTGRES_DB: app",
+        "    volumes:",
+        "      - pgdata:/var/lib/postgresql/data",
+        "    healthcheck:",
+        '      test: ["CMD", "pg_isready", "-U", "postgres"]',
+        "  redis:",
+        "    image: redis:7",
+        "    ports:",
+        "      - target: 6379",
+        "        published: 6379",
+        "    depends_on:",
+        "      postgres:",
+        "        condition: service_healthy"
+      ].join("\n")
+    );
+
+    const config = await buildInitialProxyConfig({}, root);
+
+    expect(config.services).toEqual([
+      expect.objectContaining({
+        name: "postgres",
+        image: "postgres:16",
+        ports: ["5432:5432"],
+        env: {
+          POSTGRES_PASSWORD: "postgres",
+          POSTGRES_DB: "app"
+        },
+        volumes: ["pgdata:/var/lib/postgresql/data"],
+        dependsOn: [],
+        healthCheck: expect.objectContaining({
+          type: "command",
+          command: "CMD pg_isready -U postgres"
+        })
+      }),
+      expect.objectContaining({
+        name: "redis",
+        image: "redis:7",
+        ports: ["6379:6379"],
+        dependsOn: ["postgres"]
+      })
+    ]);
+    expect(config.projects[0]?.services).toEqual(["postgres", "redis"]);
+  });
+
   it("stores workspace config outside the project and resolves from child directories", async () => {
     process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-config-"));

@@ -2,6 +2,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import readline from "node:readline/promises";
 import fs from "fs-extra";
+import YAML from "yaml";
 import {
   proxyConfigSchema,
   type ProxyConfig,
@@ -75,12 +76,13 @@ export async function writeInitialProxyConfig(_targetPath?: string, answers: Ini
 
 export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers = {}, rootDir = process.cwd()): Promise<ProxyConfig> {
   const defaults = await inferInitialProxyConfigDefaults(rootDir);
+  const inferredServices = await inferComposeServices(rootDir);
 
   const resolved = process.stdin.isTTY && process.stdout.isTTY && Object.keys(answers).length === 0 ? await askInitialProxyConfig(defaults) : answers;
   return proxyConfigSchema.parse({
     workspace: resolved.workspace ?? defaults.workspace,
     proxyPort: resolved.proxyPort ?? defaults.proxyPort,
-    services: [],
+    services: inferredServices,
     projects: [
       {
         name: resolved.projectName ?? defaults.projectName,
@@ -88,7 +90,7 @@ export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers
         target: resolved.target ?? defaults.target,
         command: resolved.command ?? defaults.command,
         cwd: resolved.cwd ?? defaults.cwd,
-        services: []
+        services: inferredServices.map((service) => service.name)
       }
     ]
   });
@@ -159,6 +161,88 @@ async function readIfExists(filePath: string) {
   } catch {
     return "";
   }
+}
+
+async function inferComposeServices(rootDir: string) {
+  const composePath = await findComposeFile(rootDir);
+  if (!composePath) return [];
+
+  const parsed = YAML.parse(await fs.readFile(composePath, "utf8")) as unknown;
+  if (!isRecord(parsed) || !isRecord(parsed.services)) return [];
+
+  return Object.entries(parsed.services)
+    .flatMap(([name, value]) => {
+      if (!isRecord(value) || typeof value.image !== "string") return [];
+      return [
+        {
+          name,
+          image: value.image,
+          ports: normalizeComposeList(value.ports).map(String),
+          env: normalizeComposeEnv(value.environment),
+          volumes: normalizeComposeList(value.volumes).map(String),
+          dependsOn: normalizeDependsOn(value.depends_on),
+          healthCheck: inferComposeHealthCheck(value.healthcheck)
+        }
+      ];
+    })
+    .map((service) => removeUndefined(service));
+}
+
+async function findComposeFile(rootDir: string) {
+  for (const fileName of ["compose.yaml", "compose.yml", "docker-compose.yaml", "docker-compose.yml", "docker.yaml", "docker.yml"]) {
+    const candidate = path.join(rootDir, fileName);
+    if (await fs.pathExists(candidate)) return candidate;
+  }
+  return null;
+}
+
+function normalizeComposeEnv(value: unknown) {
+  if (isRecord(value)) {
+    return Object.fromEntries(Object.entries(value).map(([key, envValue]) => [key, String(envValue)]));
+  }
+  if (Array.isArray(value)) {
+    return Object.fromEntries(
+      value.flatMap((entry) => {
+        const text = String(entry);
+        const index = text.indexOf("=");
+        return index === -1 ? [] : [[text.slice(0, index), text.slice(index + 1)]];
+      })
+    );
+  }
+  return {};
+}
+
+function normalizeDependsOn(value: unknown) {
+  if (Array.isArray(value)) return value.map(String);
+  if (isRecord(value)) return Object.keys(value);
+  return [];
+}
+
+function normalizeComposeList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => (isRecord(item) ? normalizeComposePortObject(item) : String(item))).filter((item) => item.length > 0);
+}
+
+function normalizeComposePortObject(port: Record<string, unknown>) {
+  const published = port.published ?? port.host_port;
+  const target = port.target ?? port.container_port;
+  if (published && target) return `${published}:${target}`;
+  if (target) return String(target);
+  return "";
+}
+
+function inferComposeHealthCheck(value: unknown) {
+  if (!isRecord(value)) return undefined;
+  const test = Array.isArray(value.test) ? value.test.map(String).join(" ") : typeof value.test === "string" ? value.test : undefined;
+  return test ? { type: "command" as const, command: test } : undefined;
+}
+
+function removeUndefined<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as T;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function defaultInitialProxyConfig(): ProxyConfig {

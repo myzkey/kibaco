@@ -2,6 +2,15 @@
 
 Kiban can start and stop Docker services defined in the workspace config.
 
+`kiban init` can infer services from common Compose files:
+
+- `compose.yaml`
+- `compose.yml`
+- `docker-compose.yaml`
+- `docker-compose.yml`
+- `docker.yaml`
+- `docker.yml`
+
 ```sh
 kiban services up
 kiban services status

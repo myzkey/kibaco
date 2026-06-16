@@ -8,7 +8,7 @@ Create a Kiban config for this local workspace.
 kiban init
 ```
 
-Kiban infers values when possible. Override them with options:
+Kiban infers values from `package.json`, common dev scripts, simple server files, and Compose files when possible. Override them with options:
 
 ```sh
 kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"

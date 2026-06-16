@@ -6,7 +6,7 @@ Create a config in your project directory:
 kiban init
 ```
 
-Kiban infers sensible defaults from `package.json`, common dev scripts, or simple server files when it can.
+Kiban infers sensible defaults from `package.json`, common dev scripts, simple server files, and Compose files when it can.
 
 Start the environment:
 
