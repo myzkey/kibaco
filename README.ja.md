@@ -174,6 +174,7 @@ kiban doctor
 Kiban が package として公開されるまでは、リポジトリからインストールします。
 
 ```sh
+asdf install
 node --version # v24 以上
 pnpm install
 pnpm build
