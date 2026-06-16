@@ -17,23 +17,20 @@ export class ConfigError extends Error {
 }
 
 export async function findConfig(startDir = process.cwd()): Promise<string | null> {
-  let current = path.resolve(startDir);
-  while (true) {
-    const candidate = path.join(current, "kiban.yml");
-    if (await fs.pathExists(candidate)) return candidate;
-    const parent = path.dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-
+  const localConfig = await findFileUpwards("kiban.yml", startDir);
+  if (localConfig) return localConfig;
   const homeConfig = expandHome("~/.kiban/kiban.yml");
   return (await fs.pathExists(homeConfig)) ? homeConfig : null;
 }
 
 export async function findProxyConfig(startDir = process.cwd()): Promise<string | null> {
+  return findFileUpwards("kiban.config.json", startDir);
+}
+
+async function findFileUpwards(fileName: string, startDir = process.cwd()): Promise<string | null> {
   let current = path.resolve(startDir);
   while (true) {
-    const candidate = path.join(current, "kiban.config.json");
+    const candidate = path.join(current, fileName);
     if (await fs.pathExists(candidate)) return candidate;
     const parent = path.dirname(current);
     if (parent === current) break;
@@ -133,41 +130,27 @@ export async function saveConfig(configPath: string, config: KibanConfig) {
 }
 
 export function findProject(config: KibanConfig, name: string): ProjectConfig {
-  const project = config.projects.find((item) => item.name === name);
-  if (!project) {
-    const error = new Error(`Project not found: ${name}`) as Error & { code: number };
-    error.code = 6;
-    throw error;
-  }
-  return project;
+  return findNamed(config.projects, name, "Project", 6);
 }
 
 export function findProxyProject(config: ProxyConfig, name: string): ProxyProjectConfig {
-  const project = config.projects.find((item) => item.name === name);
-  if (!project) {
-    const error = new Error(`Project not found: ${name}`) as Error & { code: number };
-    error.code = 6;
-    throw error;
-  }
-  return project;
+  return findNamed(config.projects, name, "Project", 6);
 }
 
 export function findProxyService(config: ProxyConfig, name: string): ServiceConfig {
-  const service = config.services.find((item) => item.name === name);
-  if (!service) {
-    const error = new Error(`Service not found: ${name}`) as Error & { code: number };
-    error.code = 7;
-    throw error;
-  }
-  return service;
+  return findNamed(config.services, name, "Service", 7);
 }
 
 export function findService(config: KibanConfig, name: string): ServiceConfig {
-  const service = config.services.find((item) => item.name === name);
-  if (!service) {
-    const error = new Error(`Service not found: ${name}`) as Error & { code: number };
-    error.code = 7;
+  return findNamed(config.services, name, "Service", 7);
+}
+
+function findNamed<T extends { name: string }>(items: T[], name: string, label: string, code: number): T {
+  const item = items.find((entry) => entry.name === name);
+  if (!item) {
+    const error = new Error(`${label} not found: ${name}`) as Error & { code: number };
+    error.code = code;
     throw error;
   }
-  return service;
+  return item;
 }

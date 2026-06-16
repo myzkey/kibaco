@@ -1,10 +1,12 @@
 import fs from "fs-extra";
 import { spawn } from "node:child_process";
 import { findService } from "./config.js";
-import { downService, isDockerRunning, upService } from "./docker.js";
+import { downService } from "./docker.js";
 import { waitForHealth } from "./health.js";
 import { ensureKibanDirs, projectLogPath } from "./paths.js";
 import { getPortUsage, isPortAvailable } from "./ports.js";
+import { startServices } from "./service-runtime.js";
+import { stopProcess } from "./process.js";
 import { isProcessAlive, readPid, readState, removePid, writePid, writeState } from "./state.js";
 import type { KibanConfig, ProjectConfig, RuntimeStatus } from "./types.js";
 
@@ -15,21 +17,7 @@ export async function startProject(config: KibanConfig, project: ProjectConfig) 
     return { status: "running" as RuntimeStatus, pid: existingPid, alreadyRunning: true };
   }
 
-  for (const serviceName of project.services ?? []) {
-    const service = findService(config, serviceName);
-    if (!(await isDockerRunning())) {
-      const error = new Error("Docker is not running.") as Error & { code: number };
-      error.code = 4;
-      throw error;
-    }
-    await upService(config, service);
-    const ok = await waitForHealth(service.healthCheck);
-    if (!ok) {
-      const error = new Error(`Service health check failed: ${service.name}`) as Error & { code: number };
-      error.code = 5;
-      throw error;
-    }
-  }
+  await startServices(config, project.services ?? []);
 
   if (project.port && !(await isPortAvailable(project.port))) {
     const usage = await getPortUsage(project.port);
@@ -65,15 +53,7 @@ export async function startProject(config: KibanConfig, project: ProjectConfig) 
 
   const healthy = await waitForHealth(project.healthCheck, project.url);
   if (!healthy) {
-    try {
-      process.kill(-child.pid, "SIGTERM");
-    } catch {
-      try {
-        process.kill(child.pid, "SIGTERM");
-      } catch {
-        // The child may have already exited after a failed bind or startup error.
-      }
-    }
+    stopProcess(child);
     await removePid(project.name);
     const state = await readState();
     state.projects[project.name] = {
