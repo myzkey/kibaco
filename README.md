@@ -2,111 +2,48 @@
 
 [日本語版 README](./README.ja.md)
 
-Kiban is an AI-friendly local development stack manager.
+Kiban starts your local development environment with one command.
 
-It starts local app processes such as Next.js, Vite, Rails, Laravel, and API servers while managing local URLs and dependent Docker services such as PostgreSQL, MySQL, Redis, Mailhog, and MinIO from one `kiban.config.json`.
+It keeps app commands, local URLs, reverse proxy routing, and Docker services in one `kiban.config.json`, so you do not have to remember which terminal, port, or container belongs to each project.
 
-## Install
+## What You Can Do
 
-```sh
-pnpm install
-pnpm build
-pnpm link --global
-```
+- Start all app processes with `kiban dev`
+- Open stable local URLs such as `http://web.localhost:8080`
+- Start dependent Docker services before app commands
+- Reuse an already-running Kiban proxy
+- Inspect ports, services, and project targets with `kiban doctor`
+- Stop app processes with `Ctrl+C` while keeping databases running
 
 ## Quick Start
+
+Create a config in your project directory:
 
 ```sh
 kiban init
 ```
 
-`kiban init` asks a few questions when run in an interactive terminal. You can also pass values non-interactively:
+Then start the environment:
 
 ```sh
-kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
-```
-
-Edit the generated `kiban.config.json` if needed:
-
-```json
-{
-  "proxyPort": 8080,
-  "services": [],
-  "projects": [
-    {
-      "name": "web",
-      "host": "web.localhost",
-      "target": "http://localhost:3000",
-      "command": "pnpm dev",
-      "cwd": ".",
-      "services": []
-    }
-  ]
-}
-```
-
-Then run:
-
-```sh
-kiban list
-kiban doctor
 kiban dev
+```
+
+Open a project URL:
+
+```sh
 kiban open web
 ```
 
-Usually, `kiban dev` starts the required Docker services, local app processes, and local proxy together. Use `kiban proxy` only when you want to run the proxy by itself.
-If a Kiban proxy is already running on `proxyPort`, `kiban dev` reuses it.
-Pressing `Ctrl+C` stops the project processes and the proxy started by `kiban dev`. Docker services are left running; stop them explicitly with `kiban services down`.
+That is the normal daily workflow. `kiban dev` starts the Docker services used by your projects, runs each project command, and starts the local reverse proxy.
 
-## Local Smoke Test
+## Example Config
 
-You can verify the CLI without Docker by using the bundled HTTP server example.
-
-```sh
-pnpm install
-pnpm build
-cd examples/local-http
-node ../../dist/cli.js list
-node ../../dist/cli.js dev
-```
-
-In another terminal:
-
-```sh
-cd examples/local-http
-curl -H "Host: web.localhost:8080" http://127.0.0.1:8080
-```
-
-## Commands
-
-- `kiban init`
-- `kiban list`
-- `kiban dev`
-- `kiban proxy`
-- `kiban ports`
-- `kiban open`
-- `kiban services up`
-- `kiban services status`
-- `kiban services logs`
-- `kiban services down`
-- `kiban add`
-- `kiban up`
-- `kiban down`
-- `kiban restart`
-- `kiban status`
-- `kiban logs`
-- `kiban doctor`
-- `kiban kill-port`
-- `kiban edit`
-
-Core inspection commands support `--json` for AI coding agents and scripts.
-
-## Port And Proxy Configuration
-
-`kiban.config.json` is the primary config file for port and URL management:
+`kiban.config.json` describes the local environment:
 
 ```json
 {
+  "workspace": "my-app",
   "proxyPort": 8080,
   "services": [
     {
@@ -126,16 +63,16 @@ Core inspection commands support `--json` for AI coding agents and scripts.
   ],
   "projects": [
     {
-      "name": "fusenly",
-      "host": "fusenly.localhost",
+      "name": "web",
+      "host": "web.localhost",
       "target": "http://localhost:3000",
       "command": "pnpm dev",
       "cwd": ".",
       "services": ["postgres"]
     },
     {
-      "name": "fusenly-api",
-      "host": "api.fusenly.localhost",
+      "name": "api",
+      "host": "api.localhost",
       "target": "http://localhost:8787",
       "command": "pnpm dev:api",
       "cwd": ".",
@@ -145,17 +82,48 @@ Core inspection commands support `--json` for AI coding agents and scripts.
 }
 ```
 
-When a project lists services, `kiban dev` starts those Docker containers first, waits for their health checks, starts the local app commands, and then starts the local reverse proxy. Container names use `kiban-{workspace}-{service}`.
+With this config, `kiban dev` makes these URLs available:
 
-If you only need the reverse proxy, run:
-
-```sh
-kiban proxy
+```text
+http://web.localhost:8080
+http://api.localhost:8080
 ```
 
-If a Kiban proxy is already running, `kiban dev` reuses it. If another process is using `proxyPort`, Kiban prints a port conflict message with a `kiban kill-port` suggestion.
+## Daily Commands
 
-You can also manage services directly:
+```sh
+kiban dev
+```
+
+Start services, project commands, and the proxy together.
+
+```sh
+kiban doctor
+```
+
+Check the active config, proxy port, Docker availability, service references, project working directories, and target reachability.
+
+```sh
+kiban list
+```
+
+Show configured projects and their URLs.
+
+```sh
+kiban ports
+```
+
+Show local listening ports and match them to configured projects when possible.
+
+```sh
+kiban open web
+```
+
+Open a project through its configured local URL.
+
+## Docker Services
+
+When a project lists services, Kiban starts those containers before running the app command and waits for health checks when configured.
 
 ```sh
 kiban services up
@@ -164,53 +132,51 @@ kiban services logs postgres --follow
 kiban services down
 ```
 
-Use `kiban doctor` to check the active config, proxy port, Docker availability, service references, project working directories, and target reachability:
+`Ctrl+C` in `kiban dev` stops the project processes and the proxy started by Kiban. Docker services are left running so databases stay available during development. Stop them explicitly with `kiban services down`.
+
+## Proxy Only
+
+Use `kiban proxy` when your app processes are already running and you only want Kiban's URL routing:
+
+```sh
+kiban proxy
+```
+
+If a Kiban proxy is already running on `proxyPort`, `kiban dev` reuses it. If another process is using the port, Kiban shows a port conflict message with a `kiban kill-port` suggestion.
+
+## Init Without Prompts
+
+`kiban init` asks a few questions in an interactive terminal. You can also create a config non-interactively:
+
+```sh
+kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+```
+
+## Troubleshooting
+
+Run:
 
 ```sh
 kiban doctor
-kiban doctor --json
 ```
 
-## Stack Configuration
+Common fixes:
 
-`kiban.yml` is still supported by the stack commands such as `up`, `down`, `status`, and `logs`:
+- Port conflict: `kiban kill-port 8080 --force`
+- Stop Docker services: `kiban services down`
+- Check service logs: `kiban services logs postgres --follow`
+- Use port 80 URLs without `:8080`: set `"proxyPort": 80` and run with permission to bind port 80
 
-```yaml
-workspace: default
-projects:
-  - name: web
-    path: ~/projects/web
-    command: pnpm dev
-    port: 3000
-    url: http://localhost:3000
-    services:
-      - postgres
-services:
-  - name: postgres
-    image: postgres:16
-    ports:
-      - "5432:5432"
-    env:
-      POSTGRES_PASSWORD: postgres
-    healthCheck:
-      type: tcp
-      host: 127.0.0.1
-      port: 5432
-```
+## Install From Source
 
-Kiban stores runtime data in `~/.kiban`:
-
-- `~/.kiban/logs`
-- `~/.kiban/pids`
-- `~/.kiban/state`
-- `~/.kiban/cache`
-
-Set `KIBAN_HOME` when you want to keep runtime data somewhere else:
+Until Kiban is published as a package, install it from the repository:
 
 ```sh
-KIBAN_HOME=/tmp/kiban-dev kiban status
+pnpm install
+pnpm build
+pnpm link --global
 ```
 
 ## Security
 
-Kiban runs commands from your local `kiban.config.json` or `kiban.yml`. Only use configuration files that you trust.
+Kiban runs commands from your local `kiban.config.json`. Only use configuration files that you trust.
