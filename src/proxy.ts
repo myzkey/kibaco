@@ -2,7 +2,21 @@ import http from "node:http";
 import type { ProxyConfig } from "./types.js";
 
 export async function startProxy(config: ProxyConfig) {
-  const server = http.createServer((request, response) => {
+  const server = http.createServer(createProxyHandler(config));
+
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(config.proxyPort, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
+
+  return server;
+}
+
+export function createProxyHandler(config: ProxyConfig) {
+  return (request: http.IncomingMessage, response: http.ServerResponse) => {
     if (request.url === "/__kiban/proxy-health") {
       response.writeHead(200, {
         "content-type": "application/json",
@@ -50,17 +64,7 @@ export async function startProxy(config: ProxyConfig) {
     });
 
     request.pipe(targetRequest);
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(config.proxyPort, "127.0.0.1", () => {
-      server.off("error", reject);
-      resolve();
-    });
-  });
-
-  return server;
+  };
 }
 
 export function proxyUrl(config: ProxyConfig, host: string) {

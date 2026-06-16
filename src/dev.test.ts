@@ -1,0 +1,95 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const assertProxyPortUsable = vi.fn();
+const closeProxyHandle = vi.fn();
+const startOrReuseProxy = vi.fn();
+const startProjectServices = vi.fn();
+const getPortUsage = vi.fn();
+const spawnStreamingProject = vi.fn();
+const stopProcesses = vi.fn();
+const waitForProcesses = vi.fn();
+
+vi.mock("./proxy-runtime.js", () => ({
+  assertProxyPortUsable,
+  closeProxyHandle,
+  startOrReuseProxy
+}));
+
+vi.mock("./service-runtime.js", () => ({
+  startProjectServices
+}));
+
+vi.mock("./ports.js", () => ({
+  getPortUsage
+}));
+
+vi.mock("./process.js", () => ({
+  spawnStreamingProject,
+  stopProcesses,
+  waitForProcesses
+}));
+
+describe("dev", () => {
+  beforeEach(() => {
+    assertProxyPortUsable.mockReset().mockResolvedValue(undefined);
+    closeProxyHandle.mockReset().mockResolvedValue(undefined);
+    startOrReuseProxy.mockReset().mockResolvedValue({ reused: false, server: {} });
+    startProjectServices.mockReset().mockResolvedValue(undefined);
+    getPortUsage.mockReset().mockResolvedValue(null);
+    spawnStreamingProject.mockReset().mockReturnValue({ pid: 1 });
+    stopProcesses.mockReset();
+    waitForProcesses.mockReset().mockResolvedValue(undefined);
+  });
+
+  it("starts services, projects, and proxy in order", async () => {
+    const calls: string[] = [];
+    startProjectServices.mockImplementation(async () => calls.push("services"));
+    spawnStreamingProject.mockImplementation(() => {
+      calls.push("project");
+      return { pid: 1 };
+    });
+    startOrReuseProxy.mockImplementation(async () => {
+      calls.push("proxy");
+      return { reused: false, server: {} };
+    });
+    const { runDev } = await import("./dev.js");
+
+    await runDev(config());
+
+    expect(calls).toEqual(["services", "project", "proxy"]);
+    expect(assertProxyPortUsable).toHaveBeenCalledWith(8080);
+    expect(closeProxyHandle).toHaveBeenCalledWith({ reused: false, server: {} });
+  });
+
+  it("fails before spawning projects when a target port is in use", async () => {
+    getPortUsage.mockResolvedValue({ port: 3000, command: "node", pid: 42 });
+    const { runDev } = await import("./dev.js");
+
+    await expect(runDev(config())).rejects.toMatchObject({ code: 3 });
+    expect(spawnStreamingProject).not.toHaveBeenCalled();
+    expect(startOrReuseProxy).not.toHaveBeenCalled();
+  });
+
+  it("rejects empty project config", async () => {
+    const { runDev } = await import("./dev.js");
+    await expect(runDev({ ...config(), projects: [] })).rejects.toThrow("No projects configured");
+  });
+});
+
+function config() {
+  return {
+    workspace: "demo",
+    proxyPort: 8080,
+    services: [],
+    projects: [
+      {
+        name: "web",
+        host: "web.localhost",
+        target: "http://localhost:3000",
+        command: "pnpm dev",
+        cwd: ".",
+        services: []
+      }
+    ]
+  };
+}

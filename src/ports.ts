@@ -24,13 +24,7 @@ export async function isPortAvailable(port: number, host = "127.0.0.1") {
 export async function getPortUsage(port: number): Promise<PortUsage | null> {
   try {
     const { stdout } = await execa("lsof", ["-nP", "-iTCP", `-sTCP:LISTEN`]);
-    const line = stdout
-      .split("\n")
-      .slice(1)
-      .find((item) => item.includes(`:${port} `) || item.endsWith(`:${port}`));
-    if (!line) return null;
-    const parts = line.trim().split(/\s+/);
-    return { port, command: parts[0], pid: Number(parts[1]), raw: line };
+    return parseListeningPorts(stdout).find((usage) => usage.port === port) ?? null;
   } catch {
     return null;
   }
@@ -39,17 +33,21 @@ export async function getPortUsage(port: number): Promise<PortUsage | null> {
 export async function listListeningPorts(): Promise<PortUsage[]> {
   try {
     const { stdout } = await execa("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN"]);
-    const rows: Array<PortUsage | null> = stdout
-      .split("\n")
-      .slice(1)
-      .map((line) => {
-        const parts = line.trim().split(/\s+/);
-        const match = line.match(/:(\d+)\s+\(LISTEN\)|:(\d+)$/);
-        const port = Number(match?.[1] ?? match?.[2]);
-        return Number.isFinite(port) ? { port, command: parts[0], pid: Number(parts[1]), raw: line } : null;
-      });
-    return rows.filter((item): item is PortUsage => item !== null);
+    return parseListeningPorts(stdout);
   } catch {
     return [];
   }
+}
+
+export function parseListeningPorts(stdout: string): PortUsage[] {
+  const rows: Array<PortUsage | null> = stdout
+    .split("\n")
+    .slice(1)
+    .map((line) => {
+      const parts = line.trim().split(/\s+/);
+      const match = line.match(/:(\d+)\s+\(LISTEN\)|:(\d+)$/);
+      const port = Number(match?.[1] ?? match?.[2]);
+      return Number.isFinite(port) ? { port, command: parts[0], pid: Number(parts[1]), raw: line } : null;
+    });
+  return rows.filter((item): item is PortUsage => item !== null);
 }
