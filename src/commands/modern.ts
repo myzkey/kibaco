@@ -19,7 +19,7 @@ export function registerModernCommands(program: Command) {
     .option("--target <url>")
     .option("--cmd <command>")
     .option("--cwd <path>")
-    .description("Create kiban.config.json in the current directory.")
+    .description("Create a Kiban config for this local workspace.")
     .action(async (options) => {
       const configPath = await writeInitialProxyConfig(undefined, {
         workspace: options.workspace,
@@ -36,7 +36,7 @@ export function registerModernCommands(program: Command) {
   program
     .command("list")
     .option("--json", "Print JSON.")
-    .description("List registered projects.")
+    .description("Show configured projects and local URLs.")
     .action(async (options) => {
       if (await findProxyConfig()) {
         const { config } = await loadProxyConfig();
@@ -75,7 +75,7 @@ export function registerModernCommands(program: Command) {
 
   program
     .command("dev")
-    .description("Run all commands from kiban.config.json and stream their output.")
+    .description("Start services, app commands, and the local proxy.")
     .action(async () => {
       const { config } = await loadProxyConfig();
       await runDev(config);
@@ -86,7 +86,7 @@ export function registerModernCommands(program: Command) {
   program
     .command("ports")
     .option("--json", "Print JSON.")
-    .description("List local listening ports and match registered projects.")
+    .description("Show local listening ports and matching projects.")
     .action(async (options) => {
       const proxyConfig = (await findProxyConfig()) ? (await loadProxyConfig()).config : null;
       const ymlConfig = !proxyConfig && (await findConfig()) ? (await loadConfig()).config : null;
@@ -103,7 +103,7 @@ export function registerModernCommands(program: Command) {
 
   program
     .command("proxy")
-    .description("Start the local HTTP reverse proxy from kiban.config.json.")
+    .description("Start only the local reverse proxy.")
     .action(async () => {
       const { config } = await loadProxyConfig();
       await assertProxyPortAvailable(config.proxyPort);
@@ -123,7 +123,7 @@ export function registerModernCommands(program: Command) {
   program
     .command("open")
     .argument("<project>")
-    .description("Open a project URL in the browser.")
+    .description("Open a configured project URL in the browser.")
     .action(async (name) => {
       if (await findProxyConfig()) {
         const { config } = await loadProxyConfig();
@@ -144,12 +144,12 @@ export function registerModernCommands(program: Command) {
 }
 
 function registerServicesCommand(program: Command) {
-  const servicesCommand = program.command("services").description("Manage Docker services from kiban.config.json.");
+  const servicesCommand = program.command("services").description("Manage Docker services for this workspace.");
 
   servicesCommand
     .command("up")
     .argument("[services...]")
-    .description("Start Docker services from kiban.config.json.")
+    .description("Start configured Docker services.")
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
@@ -160,7 +160,7 @@ function registerServicesCommand(program: Command) {
   servicesCommand
     .command("down")
     .argument("[services...]")
-    .description("Stop Docker services from kiban.config.json.")
+    .description("Stop configured Docker services.")
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
@@ -172,7 +172,7 @@ function registerServicesCommand(program: Command) {
   servicesCommand
     .command("status")
     .option("--json", "Print JSON.")
-    .description("Show Docker service status from kiban.config.json.")
+    .description("Show Docker service status.")
     .action(async (options) => {
       const { config } = await loadProxyConfig();
       const rows = await getServiceStatuses(config);
@@ -186,7 +186,7 @@ function registerServicesCommand(program: Command) {
     .command("logs")
     .argument("<service>")
     .option("-f, --follow", "Follow logs.")
-    .description("Show Docker service logs from kiban.config.json.")
+    .description("Show Docker service logs.")
     .action(async (name: string, options) => {
       const { config } = await loadProxyConfig();
       await showServiceLogs(config, name, { follow: Boolean(options.follow) });

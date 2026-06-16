@@ -4,6 +4,7 @@ import fs from "fs-extra";
 import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerModernCommands } from "./commands/modern.js";
+import { registerStackCommands } from "./commands/stack.js";
 
 describe("cli smoke", () => {
   const originalCwd = process.cwd();
@@ -47,6 +48,21 @@ describe("cli smoke", () => {
         })
       ]
     });
+  });
+
+  it("keeps old kiban.yml commands out of the main help", () => {
+    const program = new Command();
+    registerModernCommands(program);
+    registerStackCommands(program);
+
+    const help = program.helpInformation();
+
+    expect(help).toContain("dev");
+    expect(help).toContain("doctor");
+    expect(help).not.toContain("legacy");
+    expect(help).not.toContain("up [options]");
+    expect(help).not.toContain("status [options]");
+    expect(help).not.toContain("logs [options]");
   });
 });
 

@@ -9,7 +9,7 @@ const program = new Command();
 
 program
   .name("kiban")
-  .description("An AI-friendly local development stack manager.")
+  .description("Start local app commands, Docker services, and localhost URLs with one command.")
   .version("0.1.0");
 
 registerModernCommands(program);

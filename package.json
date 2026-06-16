@@ -18,7 +18,7 @@
     "dev": "tsx src/cli.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "prepare": "husky",
-    "smoke": "pnpm build && node dist/cli.js --help",
+    "smoke": "pnpm build && node scripts/smoke-local-http.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
