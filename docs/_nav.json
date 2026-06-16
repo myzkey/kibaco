@@ -1,0 +1,12 @@
+[
+  {
+    "text": "Guide",
+    "link": "/guide/quick-start",
+    "activeMatch": "^/guide/"
+  },
+  {
+    "text": "Reference",
+    "link": "/reference/commands",
+    "activeMatch": "^/reference/"
+  }
+]

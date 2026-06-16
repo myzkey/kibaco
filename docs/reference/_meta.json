@@ -1,0 +1,12 @@
+[
+  {
+    "type": "file",
+    "name": "commands",
+    "label": "Commands"
+  },
+  {
+    "type": "file",
+    "name": "config-schema",
+    "label": "Config Schema"
+  }
+]

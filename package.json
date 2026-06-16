@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "An AI-friendly local development stack manager.",
   "type": "module",
+  "packageManager": "pnpm@10.14.0",
   "bin": {
     "kiban": "./dist/cli.js"
   },
@@ -15,6 +16,9 @@
     "build": "tsc",
     "commitlint": "commitlint",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "docs:build": "rspress build",
+    "docs:dev": "rspress dev",
+    "docs:preview": "rspress preview",
     "dev": "tsx src/cli.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "prepare": "husky",
@@ -45,6 +49,7 @@
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
     "@eslint/js": "^10.0.1",
+    "@rspress/core": "^2.0.14",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.12",
     "eslint": "^10.5.0",

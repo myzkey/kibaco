@@ -6,6 +6,8 @@ Kiban starts your local development environment with one command.
 
 It keeps app commands, local URLs, reverse proxy routing, and Docker services in one `kiban.config.json`, so you do not have to remember which terminal, port, or container belongs to each project.
 
+Documentation: https://myzkey.github.io/kiban/
+
 ## What You Can Do
 
 - Start all app processes with `kiban dev`
