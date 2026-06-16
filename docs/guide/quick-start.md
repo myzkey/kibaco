@@ -6,6 +6,8 @@ Create a config in your project directory:
 kiban init
 ```
 
+Kiban infers sensible defaults from `package.json`, common dev scripts, or simple server files when it can.
+
 Start the environment:
 
 ```sh
@@ -20,7 +22,7 @@ kiban open web
 
 That is the normal daily workflow.
 
-## Create a Config Without Prompts
+## Override Inferred Values
 
 ```sh
 kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"

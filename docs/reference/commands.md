@@ -8,6 +8,12 @@ Create a Kiban config for this local workspace.
 kiban init
 ```
 
+Kiban infers values when possible. Override them with options:
+
+```sh
+kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+```
+
 ## `kiban dev`
 
 Start services, app commands, and the local proxy.

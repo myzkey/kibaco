@@ -25,6 +25,8 @@ Kiban は、ローカル開発環境を 1 コマンドで起動するための C
 kiban init
 ```
 
+Kiban は `package.json`、一般的な dev script、単純な server file から設定をできるだけ推測します。
+
 開発環境を起動します。
 
 ```sh
@@ -146,9 +148,9 @@ kiban proxy
 
 すでに同じ `proxyPort` で Kiban proxy が起動している場合、`kiban dev` はそれを再利用します。別のプロセスがポートを使っている場合は、ポート競合メッセージと `kiban kill-port` の案内を表示します。
 
-## 質問なしで init する
+## init の推測値を上書きする
 
-`kiban init` は対話ターミナルでは質問しながら設定を作ります。非対話で作る場合は値を指定できます。
+`kiban init` は推測できる値を自動で埋めます。必要な場合だけ値を上書きできます。
 
 ```sh
 kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"

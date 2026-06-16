@@ -18,23 +18,14 @@ const kibanHome = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
 let child;
 try {
   await fs.copyFile(path.join(exampleDir, "server.mjs"), path.join(workDir, "server.mjs"));
+  const serverPath = path.join(workDir, "server.mjs");
+  const serverSource = await fs.readFile(serverPath, "utf8");
+  await fs.writeFile(serverPath, serverSource.replace("43110", String(targetPort)));
   await runCli(
     [
       "init",
-      "--workspace",
-      "smoke",
       "--proxy-port",
-      String(proxyPort),
-      "--project",
-      "web",
-      "--host",
-      "web.localhost",
-      "--target",
-      `http://localhost:${targetPort}`,
-      "--cmd",
-      "node server.mjs",
-      "--cwd",
-      "."
+      String(proxyPort)
     ],
     workDir,
     kibanHome
@@ -42,7 +33,7 @@ try {
 
   child = spawn(process.execPath, [cliPath, "dev"], {
     cwd: workDir,
-    env: { ...process.env, KIBAN_HOME: kibanHome, PORT: String(targetPort) },
+    env: { ...process.env, KIBAN_HOME: kibanHome },
     stdio: ["ignore", "pipe", "pipe"]
   });
 

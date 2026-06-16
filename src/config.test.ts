@@ -64,6 +64,48 @@ describe("kiban config", () => {
     );
   });
 
+  it("infers defaults from a local server file", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-infer-"));
+    await fs.writeFile(
+      path.join(root, "server.mjs"),
+      'server.listen(Number(process.env.PORT ?? 43110), "127.0.0.1");\n'
+    );
+
+    const config = await buildInitialProxyConfig({}, root);
+
+    expect(config.workspace).toBe(path.basename(root));
+    expect(config.projects[0]).toEqual(
+      expect.objectContaining({
+        name: "web",
+        host: "web.localhost",
+        target: "http://localhost:43110",
+        command: "node server.mjs",
+        cwd: "."
+      })
+    );
+  });
+
+  it("infers defaults from package scripts", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-infer-"));
+    await fs.writeJson(path.join(root, "package.json"), {
+      name: "@demo/admin-app",
+      scripts: {
+        dev: "vite --host 127.0.0.1"
+      }
+    });
+
+    const config = await buildInitialProxyConfig({}, root);
+
+    expect(config.projects[0]).toEqual(
+      expect.objectContaining({
+        name: "admin-app",
+        host: "admin-app.localhost",
+        target: "http://localhost:5173",
+        command: "pnpm dev"
+      })
+    );
+  });
+
   it("stores workspace config outside the project and resolves from child directories", async () => {
     process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-config-"));

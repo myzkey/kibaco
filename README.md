@@ -25,6 +25,8 @@ Create a config in your project directory:
 kiban init
 ```
 
+Kiban infers sensible defaults from `package.json`, common dev scripts, or simple server files when it can.
+
 Then start the environment:
 
 ```sh
@@ -146,9 +148,9 @@ kiban proxy
 
 If a Kiban proxy is already running on `proxyPort`, `kiban dev` reuses it. If another process is using the port, Kiban shows a port conflict message with a `kiban kill-port` suggestion.
 
-## Init Without Prompts
+## Override Init Defaults
 
-`kiban init` asks a few questions in an interactive terminal. You can also create a config non-interactively:
+`kiban init` infers defaults when it can. Override values only when needed:
 
 ```sh
 kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"

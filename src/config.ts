@@ -65,7 +65,7 @@ export async function writeInitialProxyConfig(_targetPath?: string, answers: Ini
   const existing = await findProxyWorkspace(root);
   if (existing?.root === root) throw new ConfigError(`Kiban workspace already exists for ${root}.`);
 
-  const config = await buildInitialProxyConfig(answers);
+  const config = await buildInitialProxyConfig(answers, root);
   const configPath = workspaceConfigPath(root, config.workspace);
   await fs.ensureDir(path.dirname(configPath));
   await fs.writeJson(configPath, config, { spaces: 2 });
@@ -73,16 +73,8 @@ export async function writeInitialProxyConfig(_targetPath?: string, answers: Ini
   return configPath;
 }
 
-export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers = {}): Promise<ProxyConfig> {
-  const defaults = {
-    workspace: "default",
-    proxyPort: 8080,
-    projectName: "web",
-    host: "web.localhost",
-    target: "http://localhost:3000",
-    command: "pnpm dev",
-    cwd: "."
-  };
+export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers = {}, rootDir = process.cwd()): Promise<ProxyConfig> {
+  const defaults = await inferInitialProxyConfigDefaults(rootDir);
 
   const resolved = process.stdin.isTTY && process.stdout.isTTY && Object.keys(answers).length === 0 ? await askInitialProxyConfig(defaults) : answers;
   return proxyConfigSchema.parse({
@@ -96,6 +88,100 @@ export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers
         target: resolved.target ?? defaults.target,
         command: resolved.command ?? defaults.command,
         cwd: resolved.cwd ?? defaults.cwd,
+        services: []
+      }
+    ]
+  });
+}
+
+async function inferInitialProxyConfigDefaults(rootDir: string): Promise<Required<InitialProxyConfigAnswers>> {
+  const root = path.resolve(rootDir);
+  const workspace = path.basename(root) || "default";
+  const packageJson = await readPackageJson(root);
+  const command = inferCommand(root, packageJson);
+  const projectName = inferProjectName(packageJson);
+  const port = await inferTargetPort(root, command);
+
+  return {
+    workspace,
+    proxyPort: 8080,
+    projectName,
+    host: `${projectName}.localhost`,
+    target: `http://localhost:${port}`,
+    command,
+    cwd: "."
+  };
+}
+
+async function readPackageJson(root: string) {
+  try {
+    return (await fs.readJson(path.join(root, "package.json"))) as { name?: string; scripts?: Record<string, string> };
+  } catch {
+    return null;
+  }
+}
+
+function inferCommand(root: string, packageJson: { scripts?: Record<string, string> } | null) {
+  if (packageJson?.scripts?.dev) return "pnpm dev";
+  if (fs.existsSync(path.join(root, "server.mjs"))) return "node server.mjs";
+  if (fs.existsSync(path.join(root, "server.js"))) return "node server.js";
+  return "pnpm dev";
+}
+
+function inferProjectName(packageJson: { name?: string } | null) {
+  const rawName = packageJson?.name?.split("/").pop() ?? "web";
+  const name = rawName.replace(/[^a-zA-Z0-9-]/g, "-").replace(/^-+|-+$/g, "");
+  return name || "web";
+}
+
+async function inferTargetPort(root: string, command: string) {
+  const packageJson = await readPackageJson(root);
+  const commandText = [command, packageJson?.scripts?.dev ?? "", await readIfExists(path.join(root, "server.mjs")), await readIfExists(path.join(root, "server.js"))].join("\n");
+
+  const envPort = commandText.match(/\bPORT\s*=\s*(\d{2,5})\b/);
+  if (envPort) return Number(envPort[1]);
+
+  const fallbackEnvPort = commandText.match(/process\.env\.PORT\s*\?\?\s*['"`]?(\d{2,5})['"`]?/);
+  if (fallbackEnvPort) return Number(fallbackEnvPort[1]);
+
+  const listenPort = commandText.match(/listen\(\s*(?:Number\(process\.env\.PORT\s*\?\?\s*)?['"`]?(\d{2,5})['"`]?/);
+  if (listenPort) return Number(listenPort[1]);
+
+  if (/\b(vite|vite\s+)/.test(commandText)) return 5173;
+  if (/\b(astro)\b/.test(commandText)) return 4321;
+  if (/\b(next|next\s+dev)\b/.test(commandText)) return 3000;
+  return 3000;
+}
+
+async function readIfExists(filePath: string) {
+  try {
+    return await fs.readFile(filePath, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+export function defaultInitialProxyConfig(): ProxyConfig {
+  const defaults = {
+    workspace: "default",
+    proxyPort: 8080,
+    projectName: "web",
+    host: "web.localhost",
+    target: "http://localhost:3000",
+    command: "pnpm dev",
+    cwd: "."
+  };
+  return proxyConfigSchema.parse({
+    workspace: defaults.workspace,
+    proxyPort: defaults.proxyPort,
+    services: [],
+    projects: [
+      {
+        name: defaults.projectName,
+        host: defaults.host,
+        target: defaults.target,
+        command: defaults.command,
+        cwd: defaults.cwd,
         services: []
       }
     ]

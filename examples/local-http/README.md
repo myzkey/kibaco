@@ -7,7 +7,7 @@ Kiban does not create a config file in this directory. `kiban init` stores the w
 ```sh
 pnpm build
 cd examples/local-http
-node ../../dist/cli.js init --workspace local-http --proxy-port 8080 --project web --host web.localhost --target http://localhost:43110 --cmd "node server.mjs" --cwd .
+node ../../dist/cli.js init
 node ../../dist/cli.js list
 node ../../dist/cli.js dev
 ```
