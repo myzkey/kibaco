@@ -7,7 +7,7 @@ import { kibanError } from "./errors.js";
 import type { ProxyConfig } from "./types.js";
 
 export async function runDev(config: ProxyConfig) {
-  if (config.projects.length === 0) throw new Error("No projects configured in kiban.config.json.");
+  if (config.projects.length === 0) throw new Error("No projects configured in this Kiban workspace.");
 
   console.log("Kiban dev starting...");
   console.log("");

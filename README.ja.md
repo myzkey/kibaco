@@ -4,7 +4,7 @@
 
 Kiban は、ローカル開発環境を 1 コマンドで起動するための CLI ツールです。
 
-アプリの起動コマンド、ローカル URL、リバースプロキシ、Docker サービスを `kiban.config.json` にまとめておくことで、どのターミナルで何を起動するか、どのポートを見るか、どの DB コンテナが必要かを迷わず扱えるようにします。
+アプリの起動コマンド、ローカル URL、リバースプロキシ、Docker サービスを `~/.kiban` 配下の workspace config に保存することで、プロジェクトディレクトリを汚さずにローカル開発環境を管理します。
 
 ドキュメント: https://myzkey.github.io/kiban/
 
@@ -41,7 +41,7 @@ kiban open web
 
 ## 設定例
 
-`kiban.config.json` にローカル開発環境を定義します。
+Kiban は設定をプロジェクト配下ではなく `~/.kiban` に保存します。内容としては以下のような workspace config です。
 
 ```json
 {
@@ -182,4 +182,4 @@ pnpm link --global
 
 ## セキュリティ
 
-Kiban はローカルの `kiban.config.json` に書かれたコマンドを実行します。信頼できる設定ファイルだけを使ってください。
+Kiban は workspace config に書かれたコマンドを実行します。信頼できるワークスペースだけを初期化してください。

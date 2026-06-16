@@ -36,7 +36,7 @@ describe("doctor", () => {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-doctor-"));
     const { runProxyDoctor } = await import("./doctor.js");
 
-    const issues = await runProxyDoctor(path.join(cwd, "kiban.config.json"), {
+    const issues = await runProxyDoctor(path.join(cwd, "config.json"), {
       workspace: "demo",
       proxyPort: 8080,
       services: [],
@@ -62,7 +62,7 @@ describe("doctor", () => {
     isKibanProxyRunning.mockResolvedValue(true);
     const { runProxyDoctor } = await import("./doctor.js");
 
-    const issues = await runProxyDoctor(path.join(cwd, "kiban.config.json"), {
+    const issues = await runProxyDoctor(path.join(cwd, "config.json"), {
       workspace: "demo",
       proxyPort: 8080,
       services: [],

@@ -1,6 +1,6 @@
 # Docker Services
 
-Kiban can start and stop Docker services defined in `kiban.config.json`.
+Kiban can start and stop Docker services defined in the workspace config.
 
 ```sh
 kiban services up

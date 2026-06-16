@@ -5,16 +5,20 @@ import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerModernCommands } from "./commands/modern.js";
 import { registerStackCommands } from "./commands/stack.js";
+import { writeInitialProxyConfig } from "./config.js";
 
 describe("cli smoke", () => {
   const originalCwd = process.cwd();
+  const originalKibanHome = process.env.KIBAN_HOME;
 
   afterEach(() => {
     process.chdir(originalCwd);
+    if (originalKibanHome === undefined) delete process.env.KIBAN_HOME;
+    else process.env.KIBAN_HOME = originalKibanHome;
     vi.restoreAllMocks();
   });
 
-  it("prints list --json from kiban.config.json", async () => {
+  it("prints list --json from the registered workspace config", async () => {
     const cwd = await fixtureDir();
     process.chdir(cwd);
     const output = await runModernCommand(["list", "--json"]);
@@ -50,7 +54,7 @@ describe("cli smoke", () => {
     });
   });
 
-  it("keeps old kiban.yml commands out of the main help", () => {
+  it("keeps old project-file commands out of the main help", () => {
     const program = new Command();
     registerModernCommands(program);
     registerStackCommands(program);
@@ -80,7 +84,21 @@ async function runModernCommand(args: string[]) {
 
 async function fixtureDir() {
   const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-cli-"));
-  await fs.writeJson(path.join(cwd, "kiban.config.json"), {
+  process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
+  const configPath = await writeInitialProxyConfig(
+    undefined,
+    {
+      workspace: "smoke",
+      proxyPort: 8080,
+      projectName: "web",
+      host: "web.localhost",
+      target: "http://localhost:3000",
+      command: "pnpm dev",
+      cwd: "."
+    },
+    cwd
+  );
+  await fs.writeJson(configPath, {
     workspace: "smoke",
     proxyPort: 8080,
     services: [

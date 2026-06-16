@@ -1,6 +1,6 @@
 import type { Command } from "commander";
-import { findProxyConfig, loadConfig, loadProxyConfig } from "../config.js";
-import { runDoctor, runProxyDoctor } from "../doctor.js";
+import { loadProxyConfig } from "../config.js";
+import { runProxyDoctor } from "../doctor.js";
 import { printJson, error as printError, ok, warn } from "../output.js";
 
 export function registerStackCommands(program: Command) {
@@ -9,10 +9,7 @@ export function registerStackCommands(program: Command) {
     .option("--json", "Print JSON.")
     .description("Check config, ports, Docker services, and targets.")
     .action(async (options) => {
-      const proxyConfigPath = await findProxyConfig();
-      const issues = proxyConfigPath
-        ? await loadProxyConfig().then(({ path, config }) => runProxyDoctor(path, config))
-        : await loadConfig().then(({ path, config }) => runDoctor(path, config));
+      const issues = await loadProxyConfig().then(({ path, config }) => runProxyDoctor(path, config));
       if (options.json) {
         printJson({ issues });
         if (issues.some((issue) => issue.level === "error")) process.exitCode = 1;

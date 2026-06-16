@@ -1,25 +1,16 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "fs-extra";
-import { describe, expect, it } from "vitest";
-import { kibanConfigSchema, proxyConfigSchema } from "./types.js";
-import { buildInitialProxyConfig, findProxyConfig, loadProxyConfig, normalizeConfig, normalizeProxyConfig } from "./config.js";
+import { afterEach, describe, expect, it } from "vitest";
+import { proxyConfigSchema } from "./types.js";
+import { buildInitialProxyConfig, findProxyConfig, loadProxyConfig, normalizeProxyConfig, writeInitialProxyConfig } from "./config.js";
 
 describe("kiban config", () => {
-  it("parses a minimal config", () => {
-    const config = kibanConfigSchema.parse({ workspace: "demo" });
-    expect(config.projects).toEqual([]);
-    expect(config.services).toEqual([]);
-  });
+  const originalKibanHome = process.env.KIBAN_HOME;
 
-  it("expands project home paths", () => {
-    const config = normalizeConfig(
-      kibanConfigSchema.parse({
-        workspace: "demo",
-        projects: [{ name: "web", path: "~/web", command: "pnpm dev" }]
-      })
-    );
-    expect(config.projects[0]?.path).not.toBe("~/web");
+  afterEach(() => {
+    if (originalKibanHome === undefined) delete process.env.KIBAN_HOME;
+    else process.env.KIBAN_HOME = originalKibanHome;
   });
 
   it("parses a minimal proxy config", () => {
@@ -73,13 +64,28 @@ describe("kiban config", () => {
     );
   });
 
-  it("finds and loads kiban.config.json from parent directories", async () => {
+  it("stores workspace config outside the project and resolves from child directories", async () => {
+    process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-config-"));
     const nested = path.join(root, "apps", "web");
     await fs.ensureDir(nested);
-    await fs.writeJson(path.join(root, "kiban.config.json"), {
+    const configPath = await writeInitialProxyConfig(
+      undefined,
+      {
+        workspace: "demo",
+        proxyPort: 8088,
+        projectName: "web",
+        host: "web.localhost",
+        target: "http://localhost:3000",
+        command: "pnpm dev",
+        cwd: "apps/web"
+      },
+      root
+    );
+    await fs.writeJson(configPath, {
       workspace: "demo",
       proxyPort: 8088,
+      services: [],
       projects: [
         {
           name: "web",
@@ -91,9 +97,10 @@ describe("kiban config", () => {
       ]
     });
 
-    await expect(findProxyConfig(nested)).resolves.toBe(path.join(root, "kiban.config.json"));
+    await expect(fs.pathExists(path.join(root, "kiban.config.json"))).resolves.toBe(false);
+    await expect(findProxyConfig(nested)).resolves.toBe(configPath);
     const loaded = await loadProxyConfig(nested);
     expect(loaded.config.workspace).toBe("demo");
-    expect(loaded.config.projects[0]?.cwd).toBe(nested);
+    await expect(fs.realpath(loaded.config.projects[0]?.cwd ?? "")).resolves.toBe(await fs.realpath(nested));
   });
 });

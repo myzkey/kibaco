@@ -1,6 +1,6 @@
 # Configuration
 
-Kiban uses `kiban.config.json` as the source of truth for local app processes, URLs, proxy routing, and Docker services.
+Kiban stores workspace config outside the project, under `~/.kiban`. That config is the source of truth for local app processes, URLs, proxy routing, and Docker services.
 
 ```json
 {

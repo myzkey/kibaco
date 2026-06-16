@@ -2,21 +2,21 @@ import path from "node:path";
 import os from "node:os";
 import fs from "fs-extra";
 
-const configuredKibanHome = process.env.KIBAN_HOME;
-export const KIBAN_DIR = configuredKibanHome
-  ? path.resolve(expandHome(configuredKibanHome))
-  : path.join(os.homedir(), ".kiban");
-export const LOG_DIR = path.join(KIBAN_DIR, "logs");
-export const PID_DIR = path.join(KIBAN_DIR, "pids");
-export const STATE_DIR = path.join(KIBAN_DIR, "state");
-export const CACHE_DIR = path.join(KIBAN_DIR, "cache");
-export const STATE_FILE = path.join(STATE_DIR, "state.json");
+export const KIBAN_DIR = kibanDir();
+export const LOG_DIR = logDir();
+export const PID_DIR = pidDir();
+export const STATE_DIR = stateDir();
+export const CACHE_DIR = cacheDir();
+export const WORKSPACES_DIR = workspacesDir();
+export const WORKSPACE_INDEX_FILE = workspaceIndexFile();
+export const STATE_FILE = stateFile();
 
 export async function ensureKibanDirs() {
-  await fs.ensureDir(LOG_DIR);
-  await fs.ensureDir(PID_DIR);
-  await fs.ensureDir(STATE_DIR);
-  await fs.ensureDir(CACHE_DIR);
+  await fs.ensureDir(logDir());
+  await fs.ensureDir(pidDir());
+  await fs.ensureDir(stateDir());
+  await fs.ensureDir(cacheDir());
+  await fs.ensureDir(workspacesDir());
 }
 
 export function expandHome(value: string) {
@@ -26,9 +26,42 @@ export function expandHome(value: string) {
 }
 
 export function projectLogPath(name: string) {
-  return path.join(LOG_DIR, `${name}.log`);
+  return path.join(logDir(), `${name}.log`);
 }
 
 export function projectPidPath(name: string) {
-  return path.join(PID_DIR, `${name}.pid`);
+  return path.join(pidDir(), `${name}.pid`);
+}
+
+export function kibanDir() {
+  const configuredKibanHome = process.env.KIBAN_HOME;
+  return configuredKibanHome ? path.resolve(expandHome(configuredKibanHome)) : path.join(os.homedir(), ".kiban");
+}
+
+export function logDir() {
+  return path.join(kibanDir(), "logs");
+}
+
+export function pidDir() {
+  return path.join(kibanDir(), "pids");
+}
+
+export function stateDir() {
+  return path.join(kibanDir(), "state");
+}
+
+export function cacheDir() {
+  return path.join(kibanDir(), "cache");
+}
+
+export function workspacesDir() {
+  return path.join(kibanDir(), "workspaces");
+}
+
+export function workspaceIndexFile() {
+  return path.join(workspacesDir(), "index.json");
+}
+
+export function stateFile() {
+  return path.join(stateDir(), "state.json");
 }

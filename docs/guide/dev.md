@@ -8,7 +8,7 @@ kiban dev
 
 Kiban will:
 
-1. Read `kiban.config.json`
+1. Find the Kiban workspace config for the current directory
 2. Start Docker services referenced by projects
 3. Wait for configured health checks
 4. Start project commands

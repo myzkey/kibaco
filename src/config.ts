@@ -1,81 +1,43 @@
 import path from "node:path";
+import crypto from "node:crypto";
 import readline from "node:readline/promises";
 import fs from "fs-extra";
-import YAML from "yaml";
 import {
-  kibanConfigSchema,
   proxyConfigSchema,
-  type KibanConfig,
-  type ProjectConfig,
   type ProxyConfig,
   type ProxyProjectConfig,
   type ServiceConfig
 } from "./types.js";
-import { expandHome } from "./paths.js";
+import { ensureKibanDirs, expandHome, workspaceIndexFile, workspacesDir } from "./paths.js";
 
 export class ConfigError extends Error {
   code = 2;
 }
 
-export async function findConfig(startDir = process.cwd()): Promise<string | null> {
-  const localConfig = await findFileUpwards("kiban.yml", startDir);
-  if (localConfig) return localConfig;
-  const homeConfig = expandHome("~/.kiban/kiban.yml");
-  return (await fs.pathExists(homeConfig)) ? homeConfig : null;
-}
+type WorkspaceIndex = {
+  workspaces: Array<{
+    root: string;
+    configPath: string;
+    workspace: string;
+  }>;
+};
 
 export async function findProxyConfig(startDir = process.cwd()): Promise<string | null> {
-  return findFileUpwards("kiban.config.json", startDir);
-}
-
-async function findFileUpwards(fileName: string, startDir = process.cwd()): Promise<string | null> {
-  let current = path.resolve(startDir);
-  while (true) {
-    const candidate = path.join(current, fileName);
-    if (await fs.pathExists(candidate)) return candidate;
-    const parent = path.dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  return null;
-}
-
-export async function loadConfig(startDir = process.cwd()): Promise<{ path: string; config: KibanConfig }> {
-  const configPath = await findConfig(startDir);
-  if (!configPath) throw new ConfigError("kiban.yml not found. Run `kiban init` first.");
-
-  const raw = await fs.readFile(configPath, "utf8");
-  const parsed = YAML.parse(raw) ?? {};
-  const result = kibanConfigSchema.safeParse(parsed);
-  if (!result.success) {
-    throw new ConfigError(`Invalid kiban.yml: ${result.error.issues.map((issue) => issue.message).join(", ")}`);
-  }
-
-  return { path: configPath, config: normalizeConfig(result.data) };
+  return (await findProxyWorkspace(startDir))?.configPath ?? null;
 }
 
 export async function loadProxyConfig(startDir = process.cwd()): Promise<{ path: string; config: ProxyConfig }> {
-  const configPath = await findProxyConfig(startDir);
-  if (!configPath) throw new ConfigError("kiban.config.json not found. Run `kiban init` first.");
+  const workspace = await findProxyWorkspace(startDir);
+  if (!workspace) throw new ConfigError("Kiban workspace not found. Run `kiban init` from the workspace root first.");
 
-  const raw = await fs.readFile(configPath, "utf8");
+  const raw = await fs.readFile(workspace.configPath, "utf8");
   const parsed = JSON.parse(raw) as unknown;
   const result = proxyConfigSchema.safeParse(parsed);
   if (!result.success) {
-    throw new ConfigError(`Invalid kiban.config.json: ${result.error.issues.map((issue) => issue.message).join(", ")}`);
+    throw new ConfigError(`Invalid Kiban workspace config: ${result.error.issues.map((issue) => issue.message).join(", ")}`);
   }
 
-  return { path: configPath, config: normalizeProxyConfig(result.data, path.dirname(configPath)) };
-}
-
-export function normalizeConfig(config: KibanConfig): KibanConfig {
-  return {
-    ...config,
-    projects: config.projects.map((project) => ({
-      ...project,
-      path: expandHome(project.path)
-    }))
-  };
+  return { path: workspace.configPath, config: normalizeProxyConfig(result.data, workspace.root) };
 }
 
 export function normalizeProxyConfig(config: ProxyConfig, baseDir = process.cwd()): ProxyConfig {
@@ -88,20 +50,6 @@ export function normalizeProxyConfig(config: ProxyConfig, baseDir = process.cwd(
   };
 }
 
-export async function writeInitialConfig(targetPath = path.join(process.cwd(), "kiban.yml")) {
-  if (await fs.pathExists(targetPath)) {
-    throw new ConfigError("kiban.yml already exists. Refusing to overwrite it.");
-  }
-
-  const content = YAML.stringify({
-    workspace: "default",
-    projects: [],
-    services: []
-  });
-  await fs.writeFile(targetPath, content);
-  return targetPath;
-}
-
 export type InitialProxyConfigAnswers = {
   workspace?: string;
   proxyPort?: number;
@@ -112,13 +60,17 @@ export type InitialProxyConfigAnswers = {
   cwd?: string;
 };
 
-export async function writeInitialProxyConfig(targetPath = path.join(process.cwd(), "kiban.config.json"), answers: InitialProxyConfigAnswers = {}) {
-  if (await fs.pathExists(targetPath)) {
-    throw new ConfigError("kiban.config.json already exists. Refusing to overwrite it.");
-  }
+export async function writeInitialProxyConfig(_targetPath?: string, answers: InitialProxyConfigAnswers = {}, rootDir = process.cwd()) {
+  const root = await resolveWorkspaceRoot(rootDir);
+  const existing = await findProxyWorkspace(root);
+  if (existing?.root === root) throw new ConfigError(`Kiban workspace already exists for ${root}.`);
 
-  await fs.writeJson(targetPath, await buildInitialProxyConfig(answers), { spaces: 2 });
-  return targetPath;
+  const config = await buildInitialProxyConfig(answers);
+  const configPath = workspaceConfigPath(root, config.workspace);
+  await fs.ensureDir(path.dirname(configPath));
+  await fs.writeJson(configPath, config, { spaces: 2 });
+  await registerProxyWorkspace({ root, configPath, workspace: config.workspace });
+  return configPath;
 }
 
 export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers = {}): Promise<ProxyConfig> {
@@ -172,12 +124,51 @@ async function askInitialProxyConfig(defaults: Required<InitialProxyConfigAnswer
   }
 }
 
-export async function saveConfig(configPath: string, config: KibanConfig) {
-  await fs.writeFile(configPath, YAML.stringify(config));
+async function findProxyWorkspace(startDir = process.cwd()) {
+  const current = await resolveWorkspaceRoot(startDir);
+  const index = await readWorkspaceIndex();
+  const matches = index.workspaces
+    .filter((workspace) => current === workspace.root || current.startsWith(`${workspace.root}${path.sep}`))
+    .sort((a, b) => b.root.length - a.root.length);
+  for (const workspace of matches) {
+    if (await fs.pathExists(workspace.configPath)) return workspace;
+  }
+  return null;
 }
 
-export function findProject(config: KibanConfig, name: string): ProjectConfig {
-  return findNamed(config.projects, name, "Project", 6);
+async function registerProxyWorkspace(entry: WorkspaceIndex["workspaces"][number]) {
+  const index = await readWorkspaceIndex();
+  const workspaces = [entry, ...index.workspaces.filter((workspace) => workspace.root !== entry.root)];
+  await ensureKibanDirs();
+  await fs.writeJson(workspaceIndexFile(), { workspaces }, { spaces: 2 });
+}
+
+async function readWorkspaceIndex(): Promise<WorkspaceIndex> {
+  await ensureKibanDirs();
+  if (!(await fs.pathExists(workspaceIndexFile()))) return { workspaces: [] };
+  const raw = (await fs.readJson(workspaceIndexFile())) as Partial<WorkspaceIndex>;
+  return {
+    workspaces: (raw.workspaces ?? []).map((workspace) => ({
+      root: path.resolve(workspace.root),
+      configPath: path.resolve(workspace.configPath),
+      workspace: workspace.workspace
+    }))
+  };
+}
+
+async function resolveWorkspaceRoot(value: string) {
+  const resolved = path.resolve(value);
+  try {
+    return await fs.realpath(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
+function workspaceConfigPath(root: string, workspace: string) {
+  const hash = crypto.createHash("sha1").update(root).digest("hex").slice(0, 10);
+  const slug = workspace.replace(/[^a-zA-Z0-9_.-]/g, "-") || "default";
+  return path.join(workspacesDir(), `${slug}-${hash}`, "config.json");
 }
 
 export function findProxyProject(config: ProxyConfig, name: string): ProxyProjectConfig {
@@ -185,10 +176,6 @@ export function findProxyProject(config: ProxyConfig, name: string): ProxyProjec
 }
 
 export function findProxyService(config: ProxyConfig, name: string): ServiceConfig {
-  return findNamed(config.services, name, "Service", 7);
-}
-
-export function findService(config: KibanConfig, name: string): ServiceConfig {
   return findNamed(config.services, name, "Service", 7);
 }
 

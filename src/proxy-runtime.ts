@@ -74,7 +74,7 @@ export async function isKibanProxyRunning(port: number) {
 function proxyPortConflictError(port: number, command?: string, pid?: number) {
   return kibanError(
     `Port ${port} is already in use${pid ? ` by ${command ?? "unknown"} pid ${pid}` : ""}.\n` +
-      "Stop the existing process or change proxyPort in kiban.config.json.\n" +
+      "Stop the existing process or change proxyPort in the Kiban workspace config.\n" +
       `You can run:\n  kiban kill-port ${port} --force`,
     3
   );

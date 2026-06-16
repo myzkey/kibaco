@@ -1,12 +1,11 @@
 import type { Command } from "commander";
 import open from "open";
-import { findConfig, findProxyConfig, findProxyProject, loadConfig, loadProxyConfig, writeInitialProxyConfig } from "../config.js";
+import { findProxyProject, loadProxyConfig, writeInitialProxyConfig } from "../config.js";
 import { runDev } from "../dev.js";
 import { assertProxyPortAvailable } from "../proxy-runtime.js";
 import { getServiceStatuses, showServiceLogs, startServices, stopServices } from "../service-runtime.js";
 import { listListeningPorts } from "../ports.js";
 import { proxyUrl, startProxy, targetPort } from "../proxy.js";
-import { getProjectStatus } from "../runtime.js";
 import { printJson, ok } from "../output.js";
 
 export function registerModernCommands(program: Command) {
@@ -38,39 +37,23 @@ export function registerModernCommands(program: Command) {
     .option("--json", "Print JSON.")
     .description("Show configured projects and local URLs.")
     .action(async (options) => {
-      if (await findProxyConfig()) {
-        const { config } = await loadProxyConfig();
-        const rows = config.projects.map((project) => ({
-          name: project.name,
-          host: proxyUrl(config, project.host),
-          target: project.target,
-          command: project.command,
-          cwd: project.cwd,
-          services: project.services ?? []
-        }));
-        if (options.json) return printJson({ workspace: config.workspace, proxyPort: config.proxyPort, services: config.services, projects: rows });
-        for (const row of rows) {
-          console.log(`${row.name}`);
-          console.log(`  host: ${row.host}`);
-          console.log(`  target: ${row.target}`);
-          console.log(`  command: ${row.command}`);
-          if (row.services.length > 0) console.log(`  services: ${row.services.join(", ")}`);
-        }
-        return;
+      const { config } = await loadProxyConfig();
+      const rows = config.projects.map((project) => ({
+        name: project.name,
+        host: proxyUrl(config, project.host),
+        target: project.target,
+        command: project.command,
+        cwd: project.cwd,
+        services: project.services ?? []
+      }));
+      if (options.json) return printJson({ workspace: config.workspace, proxyPort: config.proxyPort, services: config.services, projects: rows });
+      for (const row of rows) {
+        console.log(`${row.name}`);
+        console.log(`  host: ${row.host}`);
+        console.log(`  target: ${row.target}`);
+        console.log(`  command: ${row.command}`);
+        if (row.services.length > 0) console.log(`  services: ${row.services.join(", ")}`);
       }
-
-      const { config } = await loadConfig();
-      const rows = await Promise.all(
-        config.projects.map(async (project) => ({
-          name: project.name,
-          ...(await getProjectStatus(project)),
-          port: project.port,
-          url: project.url,
-          services: project.services ?? []
-        }))
-      );
-      if (options.json) return printJson({ projects: rows });
-      for (const row of rows) console.log(`${row.name}\t${row.status}\t${row.port ?? "-"}\t${row.url ?? "-"}\t${row.services.join(",")}`);
     });
 
   program
@@ -88,14 +71,11 @@ export function registerModernCommands(program: Command) {
     .option("--json", "Print JSON.")
     .description("Show local listening ports and matching projects.")
     .action(async (options) => {
-      const proxyConfig = (await findProxyConfig()) ? (await loadProxyConfig()).config : null;
-      const ymlConfig = !proxyConfig && (await findConfig()) ? (await loadConfig()).config : null;
+      const { config } = await loadProxyConfig();
       const usages = await listListeningPorts();
       const rows = usages.map((usage) => ({
         ...usage,
-        registeredProject:
-          proxyConfig?.projects.find((project) => targetPort(project.target) === usage.port)?.name ??
-          ymlConfig?.projects.find((project) => project.port === usage.port)?.name
+        registeredProject: config.projects.find((project) => targetPort(project.target) === usage.port)?.name
       }));
       if (options.json) return printJson({ ports: rows });
       for (const row of rows) console.log(`${row.port}\t${row.command ?? "-"}\t${row.pid ?? "-"}\t${row.registeredProject ?? "-"}`);
@@ -125,21 +105,11 @@ export function registerModernCommands(program: Command) {
     .argument("<project>")
     .description("Open a configured project URL in the browser.")
     .action(async (name) => {
-      if (await findProxyConfig()) {
-        const { config } = await loadProxyConfig();
-        const project = findProxyProject(config, name);
-        const url = proxyUrl(config, project.host);
-        await open(url);
-        ok(`Opened ${url}`);
-        return;
-      }
-
-      const { findProject } = await import("../config.js");
-      const { config } = await loadConfig();
-      const project = findProject(config, name);
-      if (!project.url) throw new Error(`${name} has no url configured.`);
-      await open(project.url);
-      ok(`Opened ${project.url}`);
+      const { config } = await loadProxyConfig();
+      const project = findProxyProject(config, name);
+      const url = proxyUrl(config, project.host);
+      await open(url);
+      ok(`Opened ${url}`);
     });
 }
 
@@ -153,7 +123,7 @@ function registerServicesCommand(program: Command) {
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
-      if (targets.length === 0) throw new Error("No services configured in kiban.config.json.");
+      if (targets.length === 0) throw new Error("No services configured in this Kiban workspace.");
       await startServices(config, targets, { print: true });
     });
 
@@ -164,7 +134,7 @@ function registerServicesCommand(program: Command) {
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
-      if (targets.length === 0) throw new Error("No services configured in kiban.config.json.");
+      if (targets.length === 0) throw new Error("No services configured in this Kiban workspace.");
       await stopServices(config, targets);
       for (const name of targets) ok(`Stopped service ${name}`);
     });

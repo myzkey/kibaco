@@ -13,34 +13,36 @@ const exampleDir = path.join(repoRoot, "examples", "local-http");
 const proxyPort = await findFreePort();
 const targetPort = await findFreePort();
 const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-smoke-"));
+const kibanHome = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
 
 let child;
 try {
   await fs.copyFile(path.join(exampleDir, "server.mjs"), path.join(workDir, "server.mjs"));
-  await fs.writeFile(
-    path.join(workDir, "kiban.config.json"),
-    `${JSON.stringify(
-      {
-        workspace: "smoke",
-        proxyPort,
-        projects: [
-          {
-            name: "web",
-            host: "web.localhost",
-            target: `http://localhost:${targetPort}`,
-            command: "node server.mjs",
-            cwd: "."
-          }
-        ]
-      },
-      null,
-      2
-    )}\n`
+  await runCli(
+    [
+      "init",
+      "--workspace",
+      "smoke",
+      "--proxy-port",
+      String(proxyPort),
+      "--project",
+      "web",
+      "--host",
+      "web.localhost",
+      "--target",
+      `http://localhost:${targetPort}`,
+      "--cmd",
+      "node server.mjs",
+      "--cwd",
+      "."
+    ],
+    workDir,
+    kibanHome
   );
 
   child = spawn(process.execPath, [cliPath, "dev"], {
     cwd: workDir,
-    env: { ...process.env, PORT: String(targetPort) },
+    env: { ...process.env, KIBAN_HOME: kibanHome, PORT: String(targetPort) },
     stdio: ["ignore", "pipe", "pipe"]
   });
 
@@ -65,6 +67,22 @@ try {
     await waitForExit(child, 3000).catch(() => child.kill("SIGTERM"));
   }
   await fs.rm(workDir, { force: true, recursive: true });
+  await fs.rm(kibanHome, { force: true, recursive: true });
+}
+
+function runCli(args, cwd, home) {
+  return new Promise((resolve, reject) => {
+    const childProcess = spawn(process.execPath, [cliPath, ...args], {
+      cwd,
+      env: { ...globalThis.process.env, KIBAN_HOME: home },
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+    const output = collectOutput(childProcess);
+    childProcess.once("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`kiban ${args.join(" ")} failed with code ${code}:\n${output.text()}`));
+    });
+  });
 }
 
 function findFreePort() {
