@@ -25,8 +25,21 @@ export async function runDev(config: ProxyConfig) {
 
   const proxyHandle = await startOrReuseProxy(config);
   const shutdown = async (code: number) => {
+    console.log("");
+    console.log("Stopping Kiban dev...");
+    console.log("");
+    console.log("Projects:");
+    for (const project of config.projects) console.log(`  ${project.name.padEnd(14)} stopping`);
     stopProcesses(children);
+    console.log("");
+    console.log("Proxy:");
     await closeProxyHandle(proxyHandle);
+    console.log(`  ${proxyHandle.reused ? "left running (reused existing proxy)" : "stopped"}`);
+    if (config.projects.some((project) => (project.services ?? []).length > 0)) {
+      console.log("");
+      console.log("Docker services:");
+      console.log("  left running (use `kiban services down` to stop them)");
+    }
     process.exit(code);
   };
 

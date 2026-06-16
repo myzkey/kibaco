@@ -57,3 +57,10 @@ export async function downService(config: DockerStackConfig, service: ServiceCon
     // Already stopped or missing.
   }
 }
+
+export async function serviceLogs(config: DockerStackConfig, service: ServiceConfig, options: { follow?: boolean } = {}) {
+  const args = ["logs"];
+  if (options.follow) args.push("-f");
+  args.push(containerName(config, service));
+  await execa("docker", args, { stdio: "inherit" });
+}

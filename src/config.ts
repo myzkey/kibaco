@@ -1,4 +1,5 @@
 import path from "node:path";
+import readline from "node:readline/promises";
 import fs from "fs-extra";
 import YAML from "yaml";
 import {
@@ -101,28 +102,74 @@ export async function writeInitialConfig(targetPath = path.join(process.cwd(), "
   return targetPath;
 }
 
-export async function writeInitialProxyConfig(targetPath = path.join(process.cwd(), "kiban.config.json")) {
+export type InitialProxyConfigAnswers = {
+  workspace?: string;
+  proxyPort?: number;
+  projectName?: string;
+  host?: string;
+  target?: string;
+  command?: string;
+  cwd?: string;
+};
+
+export async function writeInitialProxyConfig(targetPath = path.join(process.cwd(), "kiban.config.json"), answers: InitialProxyConfigAnswers = {}) {
   if (await fs.pathExists(targetPath)) {
     throw new ConfigError("kiban.config.json already exists. Refusing to overwrite it.");
   }
 
-  const content = {
+  await fs.writeJson(targetPath, await buildInitialProxyConfig(answers), { spaces: 2 });
+  return targetPath;
+}
+
+export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers = {}): Promise<ProxyConfig> {
+  const defaults = {
     workspace: "default",
     proxyPort: 8080,
+    projectName: "web",
+    host: "web.localhost",
+    target: "http://localhost:3000",
+    command: "pnpm dev",
+    cwd: "."
+  };
+
+  const resolved = process.stdin.isTTY && process.stdout.isTTY && Object.keys(answers).length === 0 ? await askInitialProxyConfig(defaults) : answers;
+  return proxyConfigSchema.parse({
+    workspace: resolved.workspace ?? defaults.workspace,
+    proxyPort: resolved.proxyPort ?? defaults.proxyPort,
     services: [],
     projects: [
       {
-        name: "web",
-        host: "web.localhost",
-        target: "http://localhost:3000",
-        command: "pnpm dev",
-        cwd: ".",
+        name: resolved.projectName ?? defaults.projectName,
+        host: resolved.host ?? defaults.host,
+        target: resolved.target ?? defaults.target,
+        command: resolved.command ?? defaults.command,
+        cwd: resolved.cwd ?? defaults.cwd,
         services: []
       }
     ]
-  };
-  await fs.writeJson(targetPath, content, { spaces: 2 });
-  return targetPath;
+  });
+}
+
+async function askInitialProxyConfig(defaults: Required<InitialProxyConfigAnswers>) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const ask = async (label: string, fallback: string) => {
+      const value = (await rl.question(`${label} (${fallback}): `)).trim();
+      return value || fallback;
+    };
+    const proxyPortValue = await ask("Proxy port", String(defaults.proxyPort));
+    return {
+      workspace: await ask("Workspace", defaults.workspace),
+      proxyPort: Number(proxyPortValue),
+      projectName: await ask("Project name", defaults.projectName),
+      host: await ask("Host", defaults.host),
+      target: await ask("Target URL", defaults.target),
+      command: await ask("Command", defaults.command),
+      cwd: await ask("Working directory", defaults.cwd)
+    };
+  } finally {
+    rl.close();
+  }
 }
 
 export async function saveConfig(configPath: string, config: KibanConfig) {

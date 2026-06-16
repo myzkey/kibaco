@@ -20,7 +20,13 @@ pnpm link --global
 kiban init
 ```
 
-Edit `kiban.config.json`:
+`kiban init` asks a few questions when run in an interactive terminal. You can also pass values non-interactively:
+
+```sh
+kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+```
+
+Edit the generated `kiban.config.json` if needed:
 
 ```json
 {
@@ -43,12 +49,14 @@ Then run:
 
 ```sh
 kiban list
+kiban doctor
 kiban dev
 kiban open web
 ```
 
 Usually, `kiban dev` starts the required Docker services, local app processes, and local proxy together. Use `kiban proxy` only when you want to run the proxy by itself.
 If a Kiban proxy is already running on `proxyPort`, `kiban dev` reuses it.
+Pressing `Ctrl+C` stops the project processes and the proxy started by `kiban dev`. Docker services are left running; stop them explicitly with `kiban services down`.
 
 ## Local Smoke Test
 
@@ -79,6 +87,7 @@ curl -H "Host: web.localhost:8080" http://127.0.0.1:8080
 - `kiban open`
 - `kiban services up`
 - `kiban services status`
+- `kiban services logs`
 - `kiban services down`
 - `kiban add`
 - `kiban up`
@@ -151,7 +160,15 @@ You can also manage services directly:
 ```sh
 kiban services up
 kiban services status
+kiban services logs postgres --follow
 kiban services down
+```
+
+Use `kiban doctor` to check the active config, proxy port, Docker availability, service references, project working directories, and target reachability:
+
+```sh
+kiban doctor
+kiban doctor --json
 ```
 
 ## Stack Configuration

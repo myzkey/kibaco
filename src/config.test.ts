@@ -3,7 +3,7 @@ import os from "node:os";
 import fs from "fs-extra";
 import { describe, expect, it } from "vitest";
 import { kibanConfigSchema, proxyConfigSchema } from "./types.js";
-import { findProxyConfig, loadProxyConfig, normalizeConfig, normalizeProxyConfig } from "./config.js";
+import { buildInitialProxyConfig, findProxyConfig, loadProxyConfig, normalizeConfig, normalizeProxyConfig } from "./config.js";
 
 describe("kiban config", () => {
   it("parses a minimal config", () => {
@@ -47,6 +47,30 @@ describe("kiban config", () => {
     );
 
     expect(config.projects[0]?.cwd).toBe(path.resolve("/repo/apps/web"));
+  });
+
+  it("builds an initial proxy config from answers", async () => {
+    const config = await buildInitialProxyConfig({
+      workspace: "demo",
+      proxyPort: 30080,
+      projectName: "api",
+      host: "api.localhost",
+      target: "http://localhost:8787",
+      command: "pnpm dev:api",
+      cwd: "apps/api"
+    });
+
+    expect(config.workspace).toBe("demo");
+    expect(config.proxyPort).toBe(30080);
+    expect(config.projects[0]).toEqual(
+      expect.objectContaining({
+        name: "api",
+        host: "api.localhost",
+        target: "http://localhost:8787",
+        command: "pnpm dev:api",
+        cwd: "apps/api"
+      })
+    );
   });
 
   it("finds and loads kiban.config.json from parent directories", async () => {

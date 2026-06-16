@@ -1,8 +1,8 @@
 import fs from "fs-extra";
 import type { Command } from "commander";
 import { execa } from "execa";
-import { findProject, loadConfig, saveConfig } from "../config.js";
-import { runDoctor } from "../doctor.js";
+import { findProject, findProxyConfig, loadConfig, loadProxyConfig, saveConfig } from "../config.js";
+import { runDoctor, runProxyDoctor } from "../doctor.js";
 import { printJson, error as printError, ok, warn } from "../output.js";
 import { projectLogPath } from "../paths.js";
 import { fileSize, followLogs } from "../process.js";
@@ -116,8 +116,10 @@ export function registerStackCommands(program: Command) {
     .option("--json", "Print JSON.")
     .description("Inspect configuration and local environment.")
     .action(async (options) => {
-      const { path, config } = await loadConfig();
-      const issues = await runDoctor(path, config);
+      const proxyConfigPath = await findProxyConfig();
+      const issues = proxyConfigPath
+        ? await loadProxyConfig().then(({ path, config }) => runProxyDoctor(path, config))
+        : await loadConfig().then(({ path, config }) => runDoctor(path, config));
       if (options.json) {
         printJson({ issues });
         if (issues.some((issue) => issue.level === "error")) process.exitCode = 1;

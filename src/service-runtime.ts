@@ -1,4 +1,4 @@
-import { containerName, downService, isDockerRunning, serviceRunning, upService } from "./docker.js";
+import { containerName, downService, isDockerRunning, serviceLogs, serviceRunning, upService } from "./docker.js";
 import { waitForHealth } from "./health.js";
 import { kibanError } from "./errors.js";
 import type { ServiceConfig } from "./types.js";
@@ -71,4 +71,8 @@ export async function getServiceStatuses(config: ServiceStackConfig): Promise<Se
       ports: service.ports ?? []
     }))
   );
+}
+
+export async function showServiceLogs(config: ServiceStackConfig, serviceName: string, options: { follow?: boolean } = {}) {
+  await serviceLogs(config, findStackService(config, serviceName), options);
 }

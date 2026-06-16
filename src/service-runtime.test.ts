@@ -4,6 +4,7 @@ const isDockerRunning = vi.fn();
 const upService = vi.fn();
 const downService = vi.fn();
 const serviceRunning = vi.fn();
+const serviceLogs = vi.fn();
 const containerName = vi.fn();
 const waitForHealth = vi.fn();
 
@@ -11,6 +12,7 @@ vi.mock("./docker.js", () => ({
   containerName,
   downService,
   isDockerRunning,
+  serviceLogs,
   serviceRunning,
   upService
 }));
@@ -25,6 +27,7 @@ describe("service-runtime", () => {
     upService.mockReset().mockResolvedValue(undefined);
     downService.mockReset().mockResolvedValue(undefined);
     serviceRunning.mockReset().mockResolvedValue(true);
+    serviceLogs.mockReset().mockResolvedValue(undefined);
     containerName.mockReset().mockImplementation((config, service) => `kiban-${config.workspace}-${service.name}`);
     waitForHealth.mockReset().mockResolvedValue(true);
   });
@@ -81,6 +84,13 @@ describe("service-runtime", () => {
         running: true
       })
     );
+  });
+
+  it("shows service logs", async () => {
+    const { showServiceLogs } = await import("./service-runtime.js");
+    await showServiceLogs(config(), "postgres", { follow: true });
+
+    expect(serviceLogs).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ name: "postgres" }), { follow: true });
   });
 });
 

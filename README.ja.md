@@ -20,7 +20,13 @@ pnpm link --global
 kiban init
 ```
 
-生成された `kiban.config.json` を編集します。
+`kiban init` は対話ターミナルではいくつか質問します。非対話で作る場合は値を指定できます。
+
+```sh
+kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+```
+
+必要に応じて、生成された `kiban.config.json` を編集します。
 
 ```json
 {
@@ -43,12 +49,14 @@ kiban init
 
 ```sh
 kiban list
+kiban doctor
 kiban dev
 kiban open web
 ```
 
 通常は `kiban dev` を実行するだけで、必要な Docker サービス、アプリケーションプロセス、ローカルプロキシがまとめて起動します。プロキシだけを単独で起動したい場合は `kiban proxy` を使います。
 すでに同じ `proxyPort` で Kiban proxy が起動している場合、`kiban dev` はそれを再利用します。
+`Ctrl+C` で止めると、`kiban dev` が起動した project process と proxy は停止します。Docker services は開発中に継続利用しやすいように残るため、止めたい場合は `kiban services down` を使います。
 
 ## ローカル動作確認
 
@@ -85,6 +93,7 @@ http://web.localhost:8080
 - `kiban open`
 - `kiban services up`
 - `kiban services status`
+- `kiban services logs`
 - `kiban services down`
 - `kiban add`
 - `kiban up`
@@ -159,7 +168,15 @@ kiban proxy
 ```sh
 kiban services up
 kiban services status
+kiban services logs postgres --follow
 kiban services down
+```
+
+`kiban doctor` で、設定ファイル、proxyPort、Docker の起動状態、service 参照、project の cwd、target の到達性をまとめて確認できます。
+
+```sh
+kiban doctor
+kiban doctor --json
 ```
 
 ## Stack 設定

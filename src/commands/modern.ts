@@ -3,7 +3,7 @@ import open from "open";
 import { findConfig, findProxyConfig, findProxyProject, loadConfig, loadProxyConfig, writeInitialProxyConfig } from "../config.js";
 import { runDev } from "../dev.js";
 import { assertProxyPortAvailable } from "../proxy-runtime.js";
-import { getServiceStatuses, startServices, stopServices } from "../service-runtime.js";
+import { getServiceStatuses, showServiceLogs, startServices, stopServices } from "../service-runtime.js";
 import { listListeningPorts } from "../ports.js";
 import { proxyUrl, startProxy, targetPort } from "../proxy.js";
 import { getProjectStatus } from "../runtime.js";
@@ -12,9 +12,24 @@ import { printJson, ok } from "../output.js";
 export function registerModernCommands(program: Command) {
   program
     .command("init")
+    .option("--workspace <name>")
+    .option("--proxy-port <port>")
+    .option("--project <name>")
+    .option("--host <host>")
+    .option("--target <url>")
+    .option("--cmd <command>")
+    .option("--cwd <path>")
     .description("Create kiban.config.json in the current directory.")
-    .action(async () => {
-      const configPath = await writeInitialProxyConfig();
+    .action(async (options) => {
+      const configPath = await writeInitialProxyConfig(undefined, {
+        workspace: options.workspace,
+        proxyPort: options.proxyPort ? Number(options.proxyPort) : undefined,
+        projectName: options.project,
+        host: options.host,
+        target: options.target,
+        command: options.cmd,
+        cwd: options.cwd
+      });
       ok(`Created ${configPath}`);
     });
 
@@ -165,5 +180,15 @@ function registerServicesCommand(program: Command) {
       for (const row of rows) {
         console.log(`${row.name}\t${row.running ? "running" : "stopped"}\t${row.container}\t${row.ports.join(",")}`);
       }
+    });
+
+  servicesCommand
+    .command("logs")
+    .argument("<service>")
+    .option("-f, --follow", "Follow logs.")
+    .description("Show Docker service logs from kiban.config.json.")
+    .action(async (name: string, options) => {
+      const { config } = await loadProxyConfig();
+      await showServiceLogs(config, name, { follow: Boolean(options.follow) });
     });
 }
