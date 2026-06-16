@@ -14,7 +14,9 @@
   "scripts": {
     "build": "tsc",
     "commitlint": "commitlint",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
     "dev": "tsx src/cli.ts",
+    "lint": "eslint \"src/**/*.ts\"",
     "prepare": "husky",
     "smoke": "pnpm build && node dist/cli.js --help",
     "test": "vitest run",
@@ -42,11 +44,14 @@
   "devDependencies": {
     "@commitlint/cli": "^21.0.2",
     "@commitlint/config-conventional": "^21.0.2",
+    "@eslint/js": "^10.0.1",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.14.12",
+    "eslint": "^10.5.0",
     "husky": "^9.1.7",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4",
+    "typescript-eslint": "^8.61.1",
     "vitest": "^2.0.5"
   },
   "engines": {
