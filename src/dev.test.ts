@@ -80,6 +80,10 @@ function config() {
   return {
     workspace: "demo",
     proxyPort: 8080,
+    log: {
+      maxBytes: 1024,
+      maxFiles: 2
+    },
     services: [],
     projects: [
       {

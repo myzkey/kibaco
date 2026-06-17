@@ -51,6 +51,17 @@ kiban ports
 kiban ports --json
 ```
 
+## `kiban logs`
+
+Show project logs captured by `kiban dev`.
+
+```sh
+kiban logs web
+kiban logs web --follow
+kiban logs --all --tail 200
+kiban logs web --jsonl
+```
+
 ## `kiban proxy`
 
 Start only the local reverse proxy.

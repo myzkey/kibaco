@@ -15,6 +15,22 @@ Kiban will:
 5. Start or reuse the local proxy
 6. Print the URLs for each project
 
+Kiban captures each project process log while still streaming it to the terminal.
+
+```text
+~/.kiban/logs/{workspace}/{project}.log
+~/.kiban/logs/{workspace}/{project}.jsonl
+```
+
+The text log is easy to read in a terminal. The JSONL log keeps `time`, `project`, `stream`, and `line` fields so tools and AI assistants can read only the project and stream they need.
+
+```sh
+kiban logs web
+kiban logs web --follow
+kiban logs --all --tail 200
+kiban logs web --jsonl
+```
+
 ## Stopping
 
 Press `Ctrl+C` to stop the project processes and the proxy started by Kiban.

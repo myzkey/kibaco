@@ -89,11 +89,11 @@ describe("cli smoke", () => {
     const help = program.helpInformation();
 
     expect(help).toContain("dev");
+    expect(help).toContain("logs");
     expect(help).toContain("doctor");
     expect(help).not.toContain("legacy");
     expect(help).not.toContain("up [options]");
     expect(help).not.toContain("status [options]");
-    expect(help).not.toContain("logs [options]");
   });
 });
 

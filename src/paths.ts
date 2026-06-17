@@ -25,8 +25,12 @@ export function expandHome(value: string) {
   return value;
 }
 
-export function projectLogPath(name: string) {
-  return path.join(logDir(), `${name}.log`);
+export function workspaceLogDir(workspace: string) {
+  return path.join(logDir(), safePathPart(workspace));
+}
+
+export function projectLogPath(workspace: string, name: string, extension = "log") {
+  return path.join(workspaceLogDir(workspace), `${safePathPart(name)}.${extension}`);
 }
 
 export function projectPidPath(name: string) {
@@ -64,4 +68,8 @@ export function workspaceIndexFile() {
 
 export function stateFile() {
   return path.join(stateDir(), "state.json");
+}
+
+function safePathPart(value: string) {
+  return value.replace(/[^a-zA-Z0-9_.-]/g, "-");
 }

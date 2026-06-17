@@ -120,6 +120,12 @@ kiban ports
 ローカルで listen しているポートを表示し、設定済み project と照合します。
 
 ```sh
+kiban logs web --follow
+```
+
+`kiban dev` が取得した project log を表示します。project ごとの text log と structured JSONL log は `~/.kiban/logs/{workspace}` に保存されます。
+
+```sh
 kiban open web
 ```
 

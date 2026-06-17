@@ -7,6 +7,7 @@ import { getServiceStatuses, showServiceLogs, startServices, stopServices } from
 import { listListeningPorts } from "../ports.js";
 import { proxyUrl, startProxy, targetPort } from "../proxy.js";
 import { printJson, ok } from "../output.js";
+import { ensureProjectLogFiles, fileSize, followLogs, printLogTail, projectLogFiles } from "../process.js";
 
 export function registerModernCommands(program: Command) {
   program
@@ -86,6 +87,32 @@ export function registerModernCommands(program: Command) {
       }));
       if (options.json) return printJson({ ports: rows });
       for (const row of rows) console.log(`${row.port}\t${row.command ?? "-"}\t${row.pid ?? "-"}\t${row.registeredProject ?? "-"}`);
+    });
+
+  program
+    .command("logs")
+    .argument("[project]")
+    .option("-f, --follow", "Follow logs.")
+    .option("--all", "Show logs for all configured projects.")
+    .option("--tail <lines>", "Number of lines to show before following.", "100")
+    .option("--jsonl", "Read structured JSONL logs.")
+    .description("Show project process logs captured by kiban dev.")
+    .action(async (name: string | undefined, options) => {
+      const { config } = await loadProxyConfig();
+      if (!options.all && !name) throw new Error("Project name is required unless --all is used.");
+      const projects = options.all ? config.projects : [findProxyProject(config, name ?? "")];
+      const format = options.jsonl ? "jsonl" : "text";
+      const logFiles = projects.flatMap((project) => {
+        ensureProjectLogFiles(config.workspace, project.name);
+        return projectLogFiles(config.workspace, project.name, format);
+      });
+      const tailLines = Number(options.tail);
+      await printLogTail(logFiles, Number.isFinite(tailLines) ? tailLines : 100);
+      if (options.follow) {
+        const offsets = new Map<string, number>();
+        for (const logFile of logFiles) offsets.set(logFile, await fileSize(logFile));
+        await followLogs(logFiles, offsets);
+      }
     });
 
   program

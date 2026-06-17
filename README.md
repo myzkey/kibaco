@@ -120,6 +120,12 @@ kiban ports
 Show local listening ports and match them to configured projects when possible.
 
 ```sh
+kiban logs web --follow
+```
+
+Show project logs captured from `kiban dev`. Kiban stores per-project text logs and structured JSONL logs under `~/.kiban/logs/{workspace}`.
+
+```sh
 kiban open web
 ```
 

@@ -20,6 +20,11 @@ export const serviceSchema = z.object({
   healthCheck: healthCheckSchema.optional()
 });
 
+export const logConfigSchema = z.object({
+  maxBytes: z.number().int().positive().default(5 * 1024 * 1024),
+  maxFiles: z.number().int().positive().default(3)
+});
+
 export const projectSchema = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
@@ -51,11 +56,13 @@ export const proxyProjectSchema = z.object({
 export const proxyConfigSchema = z.object({
   workspace: z.string().min(1).default("default"),
   proxyPort: z.number().int().positive().default(8080),
+  log: logConfigSchema.default({}),
   services: z.array(serviceSchema).default([]),
   projects: z.array(proxyProjectSchema).default([])
 });
 
 export type HealthCheck = z.infer<typeof healthCheckSchema>;
+export type LogConfig = z.infer<typeof logConfigSchema>;
 export type ServiceConfig = z.infer<typeof serviceSchema>;
 export type ProjectConfig = z.infer<typeof projectSchema>;
 export type KibanConfig = z.infer<typeof kibanConfigSchema>;

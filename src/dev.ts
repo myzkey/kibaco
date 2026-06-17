@@ -4,6 +4,7 @@ import { targetPort } from "./proxy.js";
 import { assertProxyPortUsable, closeProxyHandle, startOrReuseProxy } from "./proxy-runtime.js";
 import { startProjectServices } from "./service-runtime.js";
 import { kibanError } from "./errors.js";
+import { projectLogPath } from "./paths.js";
 import type { ProxyConfig } from "./types.js";
 
 export async function runDev(config: ProxyConfig) {
@@ -20,7 +21,8 @@ export async function runDev(config: ProxyConfig) {
   console.log("Projects:");
   const children = config.projects.map((project) => {
     console.log(`  ${project.name.padEnd(14)} ${project.command}`);
-    return spawnStreamingProject(project);
+    console.log(`  ${"".padEnd(14)} logs: ${projectLogPath(config.workspace, project.name)}`);
+    return spawnStreamingProject(project, { workspace: config.workspace, log: config.log });
   });
 
   const proxyHandle = await startOrReuseProxy(config);

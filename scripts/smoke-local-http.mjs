@@ -50,6 +50,12 @@ try {
   if (response.statusCode < 200 || response.statusCode >= 300 || body.ok !== true || body.path !== "/smoke") {
     throw new Error(`Unexpected smoke response: ${JSON.stringify(body)}`);
   }
+  const workspace = path.basename(workDir);
+  const textLog = await fs.readFile(path.join(kibanHome, "logs", workspace, "web.log"), "utf8");
+  const jsonlLog = await fs.readFile(path.join(kibanHome, "logs", workspace, "web.jsonl"), "utf8");
+  if (!textLog.includes("local-http listening") || !jsonlLog.includes('"project":"web"')) {
+    throw new Error("Project logs were not captured during smoke test.");
+  }
 
   console.log(`OK local-http smoke passed on proxy port ${proxyPort}`);
 } finally {
