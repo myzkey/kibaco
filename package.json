@@ -6,11 +6,11 @@
   "packageManager": "pnpm@10.14.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/myzkey/kiban.git"
+    "url": "git+https://github.com/myzkey/kibaco.git"
   },
-  "homepage": "https://myzkey.github.io/kiban/",
+  "homepage": "https://myzkey.github.io/kibaco/",
   "bugs": {
-    "url": "https://github.com/myzkey/kiban/issues"
+    "url": "https://github.com/myzkey/kibaco/issues"
   },
   "bin": {
     "kibaco": "./dist/cli.js"

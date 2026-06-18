@@ -6,7 +6,7 @@ Kibaco starts your local development environment with one command.
 
 It keeps app commands, local URLs, reverse proxy routing, and Docker services in Kibaco's workspace config under `~/.kibaco`, so your project directory stays clean.
 
-Documentation: https://myzkey.github.io/kiban/
+Documentation: https://myzkey.github.io/kibaco/
 
 ## What You Can Do
 

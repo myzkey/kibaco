@@ -6,7 +6,7 @@ Kibaco は、ローカル開発環境を 1 コマンドで起動するための 
 
 アプリの起動コマンド、ローカル URL、リバースプロキシ、Docker サービスを `~/.kibaco` 配下の workspace config に保存することで、プロジェクトディレクトリを汚さずにローカル開発環境を管理します。
 
-ドキュメント: https://myzkey.github.io/kiban/
+ドキュメント: https://myzkey.github.io/kibaco/
 
 ## できること
 
