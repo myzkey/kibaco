@@ -7,7 +7,7 @@ const server = http.createServer((request, response) => {
   response.end(
     JSON.stringify({
       ok: true,
-      name: "kiban-local-http",
+      name: "kibaco-local-http",
       path: request.url,
       pid: process.pid,
       time: new Date().toISOString()

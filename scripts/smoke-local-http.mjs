@@ -12,8 +12,8 @@ const exampleDir = path.join(repoRoot, "examples", "local-http");
 
 const proxyPort = await findFreePort();
 const targetPort = await findFreePort();
-const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-smoke-"));
-const kibanHome = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
+const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-smoke-"));
+const kibacoHome = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
 
 let child;
 try {
@@ -28,12 +28,12 @@ try {
       String(proxyPort)
     ],
     workDir,
-    kibanHome
+    kibacoHome
   );
 
   child = spawn(process.execPath, [cliPath, "dev"], {
     cwd: workDir,
-    env: { ...process.env, KIBAN_HOME: kibanHome },
+    env: { ...process.env, KIBACO_HOME: kibacoHome },
     stdio: ["ignore", "pipe", "pipe"]
   });
 
@@ -47,13 +47,13 @@ try {
     headers: { host: `web.localhost:${proxyPort}` }
   });
   const workspace = path.basename(workDir);
-  const textLog = await fs.readFile(path.join(kibanHome, "logs", workspace, "web.log"), "utf8");
-  const jsonlLog = await fs.readFile(path.join(kibanHome, "logs", workspace, "web.jsonl"), "utf8");
+  const textLog = await fs.readFile(path.join(kibacoHome, "logs", workspace, "web.log"), "utf8");
+  const jsonlLog = await fs.readFile(path.join(kibacoHome, "logs", workspace, "web.jsonl"), "utf8");
   if (!textLog.includes("local-http listening") || !jsonlLog.includes('"project":"web"')) {
     throw new Error("Project logs were not captured during smoke test.");
   }
 
-  await runCli(["restart", "web"], workDir, kibanHome);
+  await runCli(["restart", "web"], workDir, kibacoHome);
   await waitForOutput(output, "Restarting web...", child);
   await smokeRequestWithRetry({
     hostname: "127.0.0.1",
@@ -69,20 +69,20 @@ try {
     await waitForExit(child, 3000).catch(() => child.kill("SIGTERM"));
   }
   await fs.rm(workDir, { force: true, recursive: true });
-  await fs.rm(kibanHome, { force: true, recursive: true });
+  await fs.rm(kibacoHome, { force: true, recursive: true });
 }
 
 function runCli(args, cwd, home) {
   return new Promise((resolve, reject) => {
     const childProcess = spawn(process.execPath, [cliPath, ...args], {
       cwd,
-      env: { ...globalThis.process.env, KIBAN_HOME: home },
+      env: { ...globalThis.process.env, KIBACO_HOME: home },
       stdio: ["ignore", "pipe", "pipe"]
     });
     const output = collectOutput(childProcess);
     childProcess.once("exit", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`kiban ${args.join(" ")} failed with code ${code}:\n${output.text()}`));
+      else reject(new Error(`kibaco ${args.join(" ")} failed with code ${code}:\n${output.text()}`));
     });
   });
 }
@@ -114,7 +114,7 @@ async function waitForOutput(output, expected, process) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < 10_000) {
     if (output.text().includes(expected)) return;
-    if (process.exitCode !== null) throw new Error(`kiban dev exited early:\n${output.text()}`);
+    if (process.exitCode !== null) throw new Error(`kibaco dev exited early:\n${output.text()}`);
     await delay(50);
   }
   throw new Error(`Timed out waiting for "${expected}". Output:\n${output.text()}`);

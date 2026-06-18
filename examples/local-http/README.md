@@ -1,8 +1,8 @@
 # Local HTTP Smoke Test
 
-This example verifies Kiban without Docker.
+This example verifies Kibaco without Docker.
 
-Kiban does not create a config file in this directory. `kiban init` stores the workspace config under `~/.kiban`.
+Kibaco does not create a config file in this directory. `kibaco init` stores the workspace config under `~/.kibaco`.
 
 ```sh
 pnpm build

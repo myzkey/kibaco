@@ -4,15 +4,15 @@ import { getPortUsage } from "./ports.js";
 import { targetPort } from "./proxy.js";
 import { assertProxyPortUsable, closeProxyHandle, startOrReuseProxy } from "./proxy-runtime.js";
 import { startProjectServices } from "./service-runtime.js";
-import { kibanError } from "./errors.js";
+import { kibacoError } from "./errors.js";
 import { projectLogPath } from "./paths.js";
 import { ALL_PROJECTS_RESTART, consumeRestartRequests } from "./restart.js";
 import type { ProxyConfig } from "./types.js";
 
 export async function runDev(config: ProxyConfig) {
-  if (config.projects.length === 0) throw new Error("No projects configured in this Kiban workspace.");
+  if (config.projects.length === 0) throw new Error("No projects configured in this Kibaco workspace.");
 
-  console.log("Kiban dev starting...");
+  console.log("Kibaco dev starting...");
   console.log("");
 
   await assertProxyPortUsable(config.proxyPort);
@@ -78,7 +78,7 @@ export async function runDev(config: ProxyConfig) {
     shuttingDown = true;
     clearInterval(restartTimer);
     console.log("");
-    console.log("Stopping Kiban dev...");
+    console.log("Stopping Kibaco dev...");
     console.log("");
     console.log("Projects:");
     for (const project of config.projects) console.log(`  ${project.name.padEnd(14)} stopping`);
@@ -90,7 +90,7 @@ export async function runDev(config: ProxyConfig) {
     if (config.projects.some((project) => (project.services ?? []).length > 0)) {
       console.log("");
       console.log("Docker services:");
-      console.log("  left running (use `kiban services down` to stop them)");
+      console.log("  left running (use `kibaco services down` to stop them)");
     }
     process.exit(code);
   };
@@ -124,9 +124,9 @@ async function assertProjectTargetPortsAvailable(config: ProxyConfig) {
     if (!port) continue;
     const usage = await getPortUsage(port);
     if (!usage?.pid) continue;
-    throw kibanError(
+    throw kibacoError(
       `${project.name}: target port ${port} is already in use by ${usage.command ?? "unknown"} pid ${usage.pid}. ` +
-        `Stop it or run \`kiban kill-port ${port} --force\`.`,
+        `Stop it or run \`kibaco kill-port ${port} --force\`.`,
       3
     );
   }

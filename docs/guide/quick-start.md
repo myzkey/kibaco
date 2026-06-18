@@ -3,21 +3,21 @@
 Create a config in your project directory:
 
 ```sh
-kiban init
+kibaco init
 ```
 
-Kiban infers sensible defaults from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when it can.
+Kibaco infers sensible defaults from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when it can.
 
 Start the environment:
 
 ```sh
-kiban dev
+kibaco dev
 ```
 
 Open a project URL:
 
 ```sh
-kiban open web
+kibaco open web
 ```
 
 That is the normal daily workflow.
@@ -25,22 +25,22 @@ That is the normal daily workflow.
 ## Override Inferred Values
 
 ```sh
-kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+kibaco init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
 ```
 
 Preview inferred config without saving it:
 
 ```sh
-kiban init --detect
+kibaco init --detect
 ```
 
 Force an interactive review:
 
 ```sh
-kiban init --interactive
+kibaco init --interactive
 ```
 
-`kiban init` can detect:
+`kibaco init` can detect:
 
 - Package managers: pnpm, npm, yarn, bun
 - Frontend frameworks: Next.js, Vite, Astro, Nuxt, Remix
@@ -52,7 +52,7 @@ kiban init --interactive
 ## Check the Workspace
 
 ```sh
-kiban doctor
+kibaco doctor
 ```
 
 `doctor` checks the active config, proxy port, Docker availability, service references, project working directories, and target reachability.

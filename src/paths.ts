@@ -2,7 +2,7 @@ import path from "node:path";
 import os from "node:os";
 import fs from "fs-extra";
 
-export const KIBAN_DIR = kibanDir();
+export const KIBACO_DIR = kibacoDir();
 export const LOG_DIR = logDir();
 export const PID_DIR = pidDir();
 export const STATE_DIR = stateDir();
@@ -11,7 +11,7 @@ export const WORKSPACES_DIR = workspacesDir();
 export const WORKSPACE_INDEX_FILE = workspaceIndexFile();
 export const STATE_FILE = stateFile();
 
-export async function ensureKibanDirs() {
+export async function ensureKibacoDirs() {
   await fs.ensureDir(logDir());
   await fs.ensureDir(pidDir());
   await fs.ensureDir(stateDir());
@@ -45,29 +45,29 @@ export function restartRequestPath(workspace: string, projectName: string) {
   return path.join(restartRequestDir(workspace), `${safePathPart(projectName)}.json`);
 }
 
-export function kibanDir() {
-  const configuredKibanHome = process.env.KIBAN_HOME;
-  return configuredKibanHome ? path.resolve(expandHome(configuredKibanHome)) : path.join(os.homedir(), ".kiban");
+export function kibacoDir() {
+  const configuredKibacoHome = process.env.KIBACO_HOME;
+  return configuredKibacoHome ? path.resolve(expandHome(configuredKibacoHome)) : path.join(os.homedir(), ".kibaco");
 }
 
 export function logDir() {
-  return path.join(kibanDir(), "logs");
+  return path.join(kibacoDir(), "logs");
 }
 
 export function pidDir() {
-  return path.join(kibanDir(), "pids");
+  return path.join(kibacoDir(), "pids");
 }
 
 export function stateDir() {
-  return path.join(kibanDir(), "state");
+  return path.join(kibacoDir(), "state");
 }
 
 export function cacheDir() {
-  return path.join(kibanDir(), "cache");
+  return path.join(kibacoDir(), "cache");
 }
 
 export function workspacesDir() {
-  return path.join(kibanDir(), "workspaces");
+  return path.join(kibacoDir(), "workspaces");
 }
 
 export function workspaceIndexFile() {

@@ -17,10 +17,10 @@ export async function startProxy(config: ProxyConfig) {
 
 export function createProxyHandler(config: ProxyConfig) {
   return (request: http.IncomingMessage, response: http.ServerResponse) => {
-    if (request.url === "/__kiban/proxy-health") {
+    if (request.url === "/__kibaco/proxy-health") {
       response.writeHead(200, {
         "content-type": "application/json",
-        "x-kiban-proxy": "1"
+        "x-kibaco-proxy": "1"
       });
       response.end(JSON.stringify({ ok: true, proxyPort: config.proxyPort }));
       return;
@@ -30,7 +30,7 @@ export function createProxyHandler(config: ProxyConfig) {
     const project = config.projects.find((item) => item.host === host);
     if (!project) {
       response.writeHead(404, { "content-type": "text/plain" });
-      response.end(`No kiban project matched host: ${host ?? "unknown"}\n`);
+      response.end(`No kibaco project matched host: ${host ?? "unknown"}\n`);
       return;
     }
 
@@ -52,7 +52,7 @@ export function createProxyHandler(config: ProxyConfig) {
       (targetResponse) => {
         response.writeHead(targetResponse.statusCode ?? 502, {
           ...targetResponse.headers,
-          "x-kiban-proxy": "1"
+          "x-kibaco-proxy": "1"
         });
         targetResponse.pipe(response);
       }

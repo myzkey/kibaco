@@ -28,7 +28,7 @@ describe("service-runtime", () => {
     downService.mockReset().mockResolvedValue(undefined);
     serviceRunning.mockReset().mockResolvedValue(true);
     serviceLogs.mockReset().mockResolvedValue(undefined);
-    containerName.mockReset().mockImplementation((config, service) => `kiban-${config.workspace}-${service.name}`);
+    containerName.mockReset().mockImplementation((config, service) => `kibaco-${config.workspace}-${service.name}`);
     waitForHealth.mockReset().mockResolvedValue(true);
   });
 
@@ -80,7 +80,7 @@ describe("service-runtime", () => {
     expect(rows[0]).toEqual(
       expect.objectContaining({
         name: "postgres",
-        container: "kiban-demo-postgres",
+        container: "kibaco-demo-postgres",
         running: true
       })
     );

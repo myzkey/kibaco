@@ -1,6 +1,6 @@
 # Configuration
 
-Kiban stores workspace config outside the project, under `~/.kiban`. That config is the source of truth for local app processes, URLs, proxy routing, and Docker services.
+Kibaco stores workspace config outside the project, under `~/.kibaco`. That config is the source of truth for local app processes, URLs, proxy routing, and Docker services.
 
 ```json
 {
@@ -37,9 +37,9 @@ Kiban stores workspace config outside the project, under `~/.kiban`. That config
 
 ## Projects
 
-Each project describes one local app process and the URL Kiban should expose.
+Each project describes one local app process and the URL Kibaco should expose.
 
-- `name`: Project name used by commands such as `kiban open web`
+- `name`: Project name used by commands such as `kibaco open web`
 - `host`: Local hostname handled by the proxy
 - `target`: Local server URL started by the project command
 - `command`: Shell command for the app process
@@ -48,7 +48,7 @@ Each project describes one local app process and the URL Kiban should expose.
 
 ## Services
 
-Services are Docker containers managed by Kiban.
+Services are Docker containers managed by Kibaco.
 
 - `name`: Service name referenced by projects
 - `image`: Docker image

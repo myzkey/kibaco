@@ -38,7 +38,7 @@ export const projectSchema = z.object({
   editor: z.string().optional()
 });
 
-export const kibanConfigSchema = z.object({
+export const kibacoConfigSchema = z.object({
   workspace: z.string().min(1).default("default"),
   projects: z.array(projectSchema).default([]),
   services: z.array(serviceSchema).default([])
@@ -65,13 +65,13 @@ export type HealthCheck = z.infer<typeof healthCheckSchema>;
 export type LogConfig = z.infer<typeof logConfigSchema>;
 export type ServiceConfig = z.infer<typeof serviceSchema>;
 export type ProjectConfig = z.infer<typeof projectSchema>;
-export type KibanConfig = z.infer<typeof kibanConfigSchema>;
+export type KibacoConfig = z.infer<typeof kibacoConfigSchema>;
 export type ProxyProjectConfig = z.infer<typeof proxyProjectSchema>;
 export type ProxyConfig = z.infer<typeof proxyConfigSchema>;
 
 export type RuntimeStatus = "running" | "stopped" | "stale" | "unknown";
 
-export type KibanState = {
+export type KibacoState = {
   projects: Record<
     string,
     {

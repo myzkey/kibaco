@@ -6,7 +6,7 @@ type DockerStackConfig = {
 };
 
 export function containerName(config: DockerStackConfig, service: ServiceConfig) {
-  return `kiban-${config.workspace}-${service.name}`.replace(/[^a-zA-Z0-9_.-]/g, "-");
+  return `kibaco-${config.workspace}-${service.name}`.replace(/[^a-zA-Z0-9_.-]/g, "-");
 }
 
 export async function isDockerRunning() {

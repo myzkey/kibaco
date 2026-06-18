@@ -22,7 +22,7 @@ export function registerModernCommands(program: Command) {
     .option("--cwd <path>")
     .option("--detect", "Print the inferred config without writing it.")
     .option("--interactive", "Review inferred values interactively before writing.")
-    .description("Create a Kiban config for this local workspace.")
+    .description("Create a Kibaco config for this local workspace.")
     .action(async (options) => {
       const answers = {
         workspace: options.workspace,
@@ -77,7 +77,7 @@ export function registerModernCommands(program: Command) {
     .command("restart")
     .argument("[project]")
     .option("--all", "Restart all configured projects.")
-    .description("Ask the running kiban dev process to restart project commands.")
+    .description("Ask the running kibaco dev process to restart project commands.")
     .action(async (name: string | undefined, options) => {
       const { config } = await loadProxyConfig();
       if (!options.all && !name) throw new Error("Project name is required unless --all is used.");
@@ -115,7 +115,7 @@ export function registerModernCommands(program: Command) {
     .option("--all", "Show logs for all configured projects.")
     .option("--tail <lines>", "Number of lines to show before following.", "100")
     .option("--jsonl", "Read structured JSONL logs.")
-    .description("Show project process logs captured by kiban dev.")
+    .description("Show project process logs captured by kibaco dev.")
     .action(async (name: string | undefined, options) => {
       const { config } = await loadProxyConfig();
       if (!options.all && !name) throw new Error("Project name is required unless --all is used.");
@@ -176,7 +176,7 @@ function registerServicesCommand(program: Command) {
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
-      if (targets.length === 0) throw new Error("No services configured in this Kiban workspace.");
+      if (targets.length === 0) throw new Error("No services configured in this Kibaco workspace.");
       await startServices(config, targets, { print: true });
     });
 
@@ -187,7 +187,7 @@ function registerServicesCommand(program: Command) {
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
-      if (targets.length === 0) throw new Error("No services configured in this Kiban workspace.");
+      if (targets.length === 0) throw new Error("No services configured in this Kibaco workspace.");
       await stopServices(config, targets);
       for (const name of targets) ok(`Stopped service ${name}`);
     });
@@ -199,7 +199,7 @@ function registerServicesCommand(program: Command) {
     .action(async (names: string[]) => {
       const { config } = await loadProxyConfig();
       const targets = names.length > 0 ? names : config.services.map((service) => service.name);
-      if (targets.length === 0) throw new Error("No services configured in this Kiban workspace.");
+      if (targets.length === 0) throw new Error("No services configured in this Kibaco workspace.");
       await stopServices(config, targets);
       await startServices(config, targets, { print: true });
       for (const name of targets) ok(`Restarted service ${name}`);

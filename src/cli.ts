@@ -8,9 +8,9 @@ import { error as printError } from "./output.js";
 const program = new Command();
 
 program
-  .name("kiban")
+  .name("kibaco")
   .description("Start local app commands, Docker services, and localhost URLs with one command.")
-  .version("0.1.0");
+  .version("0.0.1");
 
 registerModernCommands(program);
 registerStackCommands(program);

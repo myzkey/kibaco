@@ -10,12 +10,12 @@ import { consumeRestartRequests } from "./restart.js";
 
 describe("cli smoke", () => {
   const originalCwd = process.cwd();
-  const originalKibanHome = process.env.KIBAN_HOME;
+  const originalKibacoHome = process.env.KIBACO_HOME;
 
   afterEach(() => {
     process.chdir(originalCwd);
-    if (originalKibanHome === undefined) delete process.env.KIBAN_HOME;
-    else process.env.KIBAN_HOME = originalKibanHome;
+    if (originalKibacoHome === undefined) delete process.env.KIBACO_HOME;
+    else process.env.KIBACO_HOME = originalKibacoHome;
     vi.restoreAllMocks();
   });
 
@@ -48,7 +48,7 @@ describe("cli smoke", () => {
         expect.objectContaining({
           name: "postgres",
           image: "postgres:16",
-          container: "kiban-smoke-postgres",
+          container: "kibaco-smoke-postgres",
           running: false
         })
       ]
@@ -66,8 +66,8 @@ describe("cli smoke", () => {
   });
 
   it("prints inferred init config without writing when using init --detect", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-detect-"));
-    process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-detect-"));
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
     process.chdir(cwd);
     await fs.writeJson(path.join(cwd, "package.json"), {
       name: "detected",
@@ -117,13 +117,13 @@ async function runModernCommand(args: string[]) {
   const program = new Command();
   program.exitOverride();
   registerModernCommands(program);
-  await program.parseAsync(["node", "kiban", ...args]);
+  await program.parseAsync(["node", "kibaco", ...args]);
   return lines.join("\n");
 }
 
 async function fixtureDir() {
-  const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-cli-"));
-  process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
+  const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-cli-"));
+  process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
   const configPath = await writeInitialProxyConfig(
     undefined,
     {

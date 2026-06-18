@@ -1,6 +1,6 @@
 # Proxy
 
-Kiban exposes stable local URLs through a reverse proxy.
+Kibaco exposes stable local URLs through a reverse proxy.
 
 ```json
 {
@@ -25,10 +25,10 @@ http://web.localhost:8080
 
 ## Proxy Only
 
-Use `kiban proxy` when app processes are already running and you only want URL routing:
+Use `kibaco proxy` when app processes are already running and you only want URL routing:
 
 ```sh
-kiban proxy
+kibaco proxy
 ```
 
-If a Kiban proxy is already running on `proxyPort`, `kiban dev` reuses it.
+If a Kibaco proxy is already running on `proxyPort`, `kibaco dev` reuses it.

@@ -1,108 +1,108 @@
 # Commands
 
-## `kiban init`
+## `kibaco init`
 
-Create a Kiban config for this local workspace.
-
-```sh
-kiban init
-```
-
-Kiban infers values from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when possible. Override them with options:
+Create a Kibaco config for this local workspace.
 
 ```sh
-kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
-kiban init --detect
-kiban init --interactive
+kibaco init
 ```
 
-## `kiban dev`
+Kibaco infers values from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when possible. Override them with options:
+
+```sh
+kibaco init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+kibaco init --detect
+kibaco init --interactive
+```
+
+## `kibaco dev`
 
 Start services, app commands, and the local proxy.
 
 ```sh
-kiban dev
+kibaco dev
 ```
 
-## `kiban restart`
+## `kibaco restart`
 
-Ask the running `kiban dev` process to restart project commands.
+Ask the running `kibaco dev` process to restart project commands.
 
 ```sh
-kiban restart web
-kiban restart --all
+kibaco restart web
+kibaco restart --all
 ```
 
-## `kiban list`
+## `kibaco list`
 
 Show configured projects and local URLs.
 
 ```sh
-kiban list
-kiban list --json
+kibaco list
+kibaco list --json
 ```
 
-## `kiban doctor`
+## `kibaco doctor`
 
 Check config, ports, Docker services, and targets.
 
 ```sh
-kiban doctor
-kiban doctor --json
+kibaco doctor
+kibaco doctor --json
 ```
 
-## `kiban ports`
+## `kibaco ports`
 
 Show local listening ports and matching projects.
 
 ```sh
-kiban ports
-kiban ports --json
+kibaco ports
+kibaco ports --json
 ```
 
-## `kiban logs`
+## `kibaco logs`
 
-Show project logs captured by `kiban dev`.
+Show project logs captured by `kibaco dev`.
 
 ```sh
-kiban logs web
-kiban logs web --follow
-kiban logs --all --tail 200
-kiban logs web --jsonl
+kibaco logs web
+kibaco logs web --follow
+kibaco logs --all --tail 200
+kibaco logs web --jsonl
 ```
 
-## `kiban proxy`
+## `kibaco proxy`
 
 Start only the local reverse proxy.
 
 ```sh
-kiban proxy
+kibaco proxy
 ```
 
-## `kiban open`
+## `kibaco open`
 
 Open a configured project URL in the browser.
 
 ```sh
-kiban open web
+kibaco open web
 ```
 
-## `kiban services`
+## `kibaco services`
 
 Manage Docker services for this workspace.
 
 ```sh
-kiban services up
-kiban services restart postgres
-kiban services status
-kiban services logs postgres --follow
-kiban services down
+kibaco services up
+kibaco services restart postgres
+kibaco services status
+kibaco services logs postgres --follow
+kibaco services down
 ```
 
-## `kiban kill-port`
+## `kibaco kill-port`
 
 Kill the process listening on a port.
 
 ```sh
-kiban kill-port 8080 --force
+kibaco kill-port 8080 --force
 ```

@@ -4,7 +4,7 @@ import readline from "node:readline/promises";
 import fs from "fs-extra";
 import YAML from "yaml";
 import { proxyConfigSchema, type ProxyConfig, type ProxyProjectConfig, type ServiceConfig } from "./types.js";
-import { ensureKibanDirs, expandHome, workspaceIndexFile, workspacesDir } from "./paths.js";
+import { ensureKibacoDirs, expandHome, workspaceIndexFile, workspacesDir } from "./paths.js";
 
 export class ConfigError extends Error {
   code = 2;
@@ -24,13 +24,13 @@ export async function findProxyConfig(startDir = process.cwd()): Promise<string 
 
 export async function loadProxyConfig(startDir = process.cwd()): Promise<{ path: string; config: ProxyConfig }> {
   const workspace = await findProxyWorkspace(startDir);
-  if (!workspace) throw new ConfigError("Kiban workspace not found. Run `kiban init` from the workspace root first.");
+  if (!workspace) throw new ConfigError("Kibaco workspace not found. Run `kibaco init` from the workspace root first.");
 
   const raw = await fs.readFile(workspace.configPath, "utf8");
   const parsed = JSON.parse(raw) as unknown;
   const result = proxyConfigSchema.safeParse(parsed);
   if (!result.success) {
-    throw new ConfigError(`Invalid Kiban workspace config: ${result.error.issues.map((issue) => issue.message).join(", ")}`);
+    throw new ConfigError(`Invalid Kibaco workspace config: ${result.error.issues.map((issue) => issue.message).join(", ")}`);
   }
 
   return { path: workspace.configPath, config: normalizeProxyConfig(result.data, workspace.root) };
@@ -79,7 +79,7 @@ type InferredProject = {
 export async function writeInitialProxyConfig(_targetPath?: string, answers: InitialProxyConfigAnswers = {}, rootDir = process.cwd(), options: BuildInitialProxyConfigOptions = {}) {
   const root = await resolveWorkspaceRoot(rootDir);
   const existing = await findProxyWorkspace(root);
-  if (existing?.root === root) throw new ConfigError(`Kiban workspace already exists for ${root}.`);
+  if (existing?.root === root) throw new ConfigError(`Kibaco workspace already exists for ${root}.`);
 
   const config = await buildInitialProxyConfig(answers, root, options);
   const configPath = workspaceConfigPath(root, config.workspace);
@@ -513,12 +513,12 @@ async function findProxyWorkspace(startDir = process.cwd()) {
 async function registerProxyWorkspace(entry: WorkspaceIndex["workspaces"][number]) {
   const index = await readWorkspaceIndex();
   const workspaces = [entry, ...index.workspaces.filter((workspace) => workspace.root !== entry.root)];
-  await ensureKibanDirs();
+  await ensureKibacoDirs();
   await fs.writeJson(workspaceIndexFile(), { workspaces }, { spaces: 2 });
 }
 
 async function readWorkspaceIndex(): Promise<WorkspaceIndex> {
-  await ensureKibanDirs();
+  await ensureKibacoDirs();
   if (!(await fs.pathExists(workspaceIndexFile()))) return { workspaces: [] };
   const raw = (await fs.readJson(workspaceIndexFile())) as Partial<WorkspaceIndex>;
   return {

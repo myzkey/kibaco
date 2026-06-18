@@ -35,17 +35,17 @@ describe("proxy-runtime", () => {
 
     await expect(assertProxyPortUsable(8080)).rejects.toMatchObject({
       code: 3,
-      message: expect.stringContaining("kiban kill-port 8080 --force")
+      message: expect.stringContaining("kibaco kill-port 8080 --force")
     });
   });
 
-  it("reuses an existing Kiban proxy", async () => {
+  it("reuses an existing Kibaco proxy", async () => {
     getPortUsage.mockResolvedValue({ port: 8080, command: "node", pid: 123 });
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        headers: new Headers({ "x-kiban-proxy": "1" })
+        headers: new Headers({ "x-kibaco-proxy": "1" })
       })
     );
     const { startOrReuseProxy } = await import("./proxy-runtime.js");

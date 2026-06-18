@@ -1,24 +1,24 @@
 import fs from "fs-extra";
 import { isDockerRunning, serviceRunning } from "./docker.js";
 import { getPortUsage } from "./ports.js";
-import { isKibanProxyRunning } from "./proxy-runtime.js";
+import { isKibacoProxyRunning } from "./proxy-runtime.js";
 import { proxyUrl, targetPort } from "./proxy.js";
 import type { DoctorIssue, ProxyConfig } from "./types.js";
 
 export async function runProxyDoctor(configPath: string, config: ProxyConfig): Promise<DoctorIssue[]> {
-  const issues: DoctorIssue[] = [{ level: "ok", code: "config_found", message: `Kiban workspace config found at ${configPath}` }];
+  const issues: DoctorIssue[] = [{ level: "ok", code: "config_found", message: `Kibaco workspace config found at ${configPath}` }];
 
   const proxyUsage = await getPortUsage(config.proxyPort);
   if (!proxyUsage?.pid) {
     issues.push({ level: "ok", code: "proxy_port_available", message: `proxyPort ${config.proxyPort} is available.` });
-  } else if (await isKibanProxyRunning(config.proxyPort)) {
-    issues.push({ level: "ok", code: "proxy_reusable", message: `Kiban proxy is already running on port ${config.proxyPort} and can be reused.` });
+  } else if (await isKibacoProxyRunning(config.proxyPort)) {
+    issues.push({ level: "ok", code: "proxy_reusable", message: `Kibaco proxy is already running on port ${config.proxyPort} and can be reused.` });
   } else {
     issues.push({
       level: "error",
       code: "proxy_port_in_use",
       message: `proxyPort ${config.proxyPort} is already in use${proxyUsage.pid ? ` by ${proxyUsage.command ?? "unknown"} pid ${proxyUsage.pid}` : ""}.`,
-      suggestion: `Run kiban kill-port ${config.proxyPort} --force or change proxyPort in the Kiban workspace config.`
+      suggestion: `Run kibaco kill-port ${config.proxyPort} --force or change proxyPort in the Kibaco workspace config.`
     });
   }
 
@@ -73,7 +73,7 @@ export async function runProxyDoctor(configPath: string, config: ProxyConfig): P
         level: "error",
         code: "project_cwd_missing",
         message: `${project.name}: cwd not found: ${project.cwd}`,
-        suggestion: "Update cwd in the Kiban workspace config."
+        suggestion: "Update cwd in the Kibaco workspace config."
       });
     }
 
@@ -95,7 +95,7 @@ export async function runProxyDoctor(configPath: string, config: ProxyConfig): P
             level: "warn",
             code: "target_unreachable",
             message: `${project.name}: target is not reachable at ${project.target}.`,
-            suggestion: `Run kiban dev, then open ${proxyUrl(config, project.host)}.`
+            suggestion: `Run kibaco dev, then open ${proxyUrl(config, project.host)}.`
           }
     );
   }

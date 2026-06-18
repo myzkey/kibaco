@@ -1,20 +1,20 @@
-# Kiban
+# Kibaco
 
 [日本語版 README](./README.ja.md)
 
-Kiban starts your local development environment with one command.
+Kibaco starts your local development environment with one command.
 
-It keeps app commands, local URLs, reverse proxy routing, and Docker services in Kiban's workspace config under `~/.kiban`, so your project directory stays clean.
+It keeps app commands, local URLs, reverse proxy routing, and Docker services in Kibaco's workspace config under `~/.kibaco`, so your project directory stays clean.
 
 Documentation: https://myzkey.github.io/kiban/
 
 ## What You Can Do
 
-- Start all app processes with `kiban dev`
+- Start all app processes with `kibaco dev`
 - Open stable local URLs such as `http://web.localhost:8080`
 - Start dependent Docker services before app commands
-- Reuse an already-running Kiban proxy
-- Inspect ports, services, and project targets with `kiban doctor`
+- Reuse an already-running Kibaco proxy
+- Inspect ports, services, and project targets with `kibaco doctor`
 - Stop app processes with `Ctrl+C` while keeping databases running
 
 ## Quick Start
@@ -22,28 +22,28 @@ Documentation: https://myzkey.github.io/kiban/
 Create a config in your project directory:
 
 ```sh
-kiban init
+kibaco init
 ```
 
-Kiban infers sensible defaults from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when it can.
+Kibaco infers sensible defaults from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when it can.
 
 Then start the environment:
 
 ```sh
-kiban dev
+kibaco dev
 ```
 
 Open a project URL:
 
 ```sh
-kiban open web
+kibaco open web
 ```
 
-That is the normal daily workflow. `kiban dev` starts the Docker services used by your projects, runs each project command, and starts the local reverse proxy.
+That is the normal daily workflow. `kibaco dev` starts the Docker services used by your projects, runs each project command, and starts the local reverse proxy.
 
 ## Example Config
 
-Kiban stores the workspace config outside the project, under `~/.kiban`. Conceptually, the config looks like this:
+Kibaco stores the workspace config outside the project, under `~/.kibaco`. Conceptually, the config looks like this:
 
 ```json
 {
@@ -86,7 +86,7 @@ Kiban stores the workspace config outside the project, under `~/.kiban`. Concept
 }
 ```
 
-With this config, `kiban dev` makes these URLs available:
+With this config, `kibaco dev` makes these URLs available:
 
 ```text
 http://web.localhost:8080
@@ -96,89 +96,89 @@ http://api.localhost:8080
 ## Daily Commands
 
 ```sh
-kiban dev
+kibaco dev
 ```
 
 Start services, project commands, and the proxy together.
 
 ```sh
-kiban doctor
+kibaco doctor
 ```
 
 Check the active config, proxy port, Docker availability, service references, project working directories, and target reachability.
 
 ```sh
-kiban list
+kibaco list
 ```
 
 Show configured projects and their URLs.
 
 ```sh
-kiban ports
+kibaco ports
 ```
 
 Show local listening ports and match them to configured projects when possible.
 
 ```sh
-kiban logs web --follow
+kibaco logs web --follow
 ```
 
-Show project logs captured from `kiban dev`. Kiban stores per-project text logs and structured JSONL logs under `~/.kiban/logs/{workspace}`.
+Show project logs captured from `kibaco dev`. Kibaco stores per-project text logs and structured JSONL logs under `~/.kibaco/logs/{workspace}`.
 
 ```sh
-kiban restart web
+kibaco restart web
 ```
 
-Restart a project process managed by the running `kiban dev`.
+Restart a project process managed by the running `kibaco dev`.
 
 ```sh
-kiban open web
+kibaco open web
 ```
 
 Open a project through its configured local URL.
 
 ## Docker Services
 
-When a project lists services, Kiban starts those containers before running the app command and waits for health checks when configured.
+When a project lists services, Kibaco starts those containers before running the app command and waits for health checks when configured.
 
 ```sh
-kiban services up
-kiban services restart postgres
-kiban services status
-kiban services logs postgres --follow
-kiban services down
+kibaco services up
+kibaco services restart postgres
+kibaco services status
+kibaco services logs postgres --follow
+kibaco services down
 ```
 
-`Ctrl+C` in `kiban dev` stops the project processes and the proxy started by Kiban. Docker services are left running so databases stay available during development. Stop them explicitly with `kiban services down`.
+`Ctrl+C` in `kibaco dev` stops the project processes and the proxy started by Kibaco. Docker services are left running so databases stay available during development. Stop them explicitly with `kibaco services down`.
 
 ## Proxy Only
 
-Use `kiban proxy` when your app processes are already running and you only want Kiban's URL routing:
+Use `kibaco proxy` when your app processes are already running and you only want Kibaco's URL routing:
 
 ```sh
-kiban proxy
+kibaco proxy
 ```
 
-If a Kiban proxy is already running on `proxyPort`, `kiban dev` reuses it. If another process is using the port, Kiban shows a port conflict message with a `kiban kill-port` suggestion.
+If a Kibaco proxy is already running on `proxyPort`, `kibaco dev` reuses it. If another process is using the port, Kibaco shows a port conflict message with a `kibaco kill-port` suggestion.
 
 ## Override Init Defaults
 
-`kiban init` infers defaults when it can. Override values only when needed:
+`kibaco init` infers defaults when it can. Override values only when needed:
 
 ```sh
-kiban init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
+kibaco init --project web --host web.localhost --target http://localhost:3000 --cmd "pnpm dev"
 ```
 
 Preview inferred config without saving it:
 
 ```sh
-kiban init --detect
+kibaco init --detect
 ```
 
 Force an interactive review:
 
 ```sh
-kiban init --interactive
+kibaco init --interactive
 ```
 
 Init can detect common setups:
@@ -195,19 +195,25 @@ Init can detect common setups:
 Run:
 
 ```sh
-kiban doctor
+kibaco doctor
 ```
 
 Common fixes:
 
-- Port conflict: `kiban kill-port 8080 --force`
-- Stop Docker services: `kiban services down`
-- Check service logs: `kiban services logs postgres --follow`
+- Port conflict: `kibaco kill-port 8080 --force`
+- Stop Docker services: `kibaco services down`
+- Check service logs: `kibaco services logs postgres --follow`
 - Use port 80 URLs without `:8080`: set `"proxyPort": 80` and run with permission to bind port 80
 
-## Install From Source
+## Install
 
-Until Kiban is published as a package, install it from the repository:
+After release, install Kibaco from npm:
+
+```sh
+npm install -g kibaco
+```
+
+For local development from source:
 
 ```sh
 asdf install
@@ -219,4 +225,4 @@ pnpm link --global
 
 ## Security
 
-Kiban runs commands from its workspace config. Only initialize workspaces that you trust.
+Kibaco runs commands from its workspace config. Only initialize workspaces that you trust.

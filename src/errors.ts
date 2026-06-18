@@ -1,4 +1,4 @@
-export class KibanError extends Error {
+export class KibacoError extends Error {
   constructor(
     message: string,
     public code = 1
@@ -7,6 +7,6 @@ export class KibanError extends Error {
   }
 }
 
-export function kibanError(message: string, code = 1) {
-  return new KibanError(message, code);
+export function kibacoError(message: string, code = 1) {
+  return new KibacoError(message, code);
 }

@@ -39,10 +39,10 @@ describe("proxy", () => {
 
   it("responds to proxy health checks", () => {
     const response = fakeResponse();
-    createProxyHandler(config)(fakeRequest("/__kiban/proxy-health", "web.localhost:8080"), response);
+    createProxyHandler(config)(fakeRequest("/__kibaco/proxy-health", "web.localhost:8080"), response);
 
     expect(response.statusCode).toBe(200);
-    expect(response.headers["x-kiban-proxy"]).toBe("1");
+    expect(response.headers["x-kibaco-proxy"]).toBe("1");
     expect(JSON.parse(response.body)).toEqual({ ok: true, proxyPort: 8080 });
   });
 
@@ -51,7 +51,7 @@ describe("proxy", () => {
     createProxyHandler(config)(fakeRequest("/", "missing.localhost:8080"), response);
 
     expect(response.statusCode).toBe(404);
-    expect(response.body).toContain("No kiban project matched host");
+    expect(response.body).toContain("No kibaco project matched host");
   });
 
   it("forwards matching hosts to the target", () => {
@@ -85,7 +85,7 @@ describe("proxy", () => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         expect(response.statusCode).toBe(201);
-        expect(response.headers["x-kiban-proxy"]).toBe("1");
+        expect(response.headers["x-kibaco-proxy"]).toBe("1");
         expect(response.body).toBe("proxied");
         resolve();
       }, 0);

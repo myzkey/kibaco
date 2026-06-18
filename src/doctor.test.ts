@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const isDockerRunning = vi.fn();
 const serviceRunning = vi.fn();
 const getPortUsage = vi.fn();
-const isKibanProxyRunning = vi.fn();
+const isKibacoProxyRunning = vi.fn();
 
 vi.mock("./docker.js", () => ({
   isDockerRunning,
@@ -19,7 +19,7 @@ vi.mock("./ports.js", () => ({
 }));
 
 vi.mock("./proxy-runtime.js", () => ({
-  isKibanProxyRunning
+  isKibacoProxyRunning
 }));
 
 describe("doctor", () => {
@@ -28,12 +28,12 @@ describe("doctor", () => {
     isDockerRunning.mockReset().mockResolvedValue(true);
     serviceRunning.mockReset().mockResolvedValue(false);
     getPortUsage.mockReset().mockResolvedValue(null);
-    isKibanProxyRunning.mockReset().mockResolvedValue(false);
+    isKibacoProxyRunning.mockReset().mockResolvedValue(false);
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
   });
 
   it("reports proxy config health and target warnings", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-doctor-"));
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-doctor-"));
     const { runProxyDoctor } = await import("./doctor.js");
 
     const issues = await runProxyDoctor(path.join(cwd, "config.json"), {
@@ -56,10 +56,10 @@ describe("doctor", () => {
     expect(issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "target_unreachable", level: "warn" })]));
   });
 
-  it("reports reusable Kiban proxy and missing service references", async () => {
-    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-doctor-"));
+  it("reports reusable Kibaco proxy and missing service references", async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-doctor-"));
     getPortUsage.mockImplementation(async (port: number) => (port === 8080 ? { port, command: "node", pid: 42 } : null));
-    isKibanProxyRunning.mockResolvedValue(true);
+    isKibacoProxyRunning.mockResolvedValue(true);
     const { runProxyDoctor } = await import("./doctor.js");
 
     const issues = await runProxyDoctor(path.join(cwd, "config.json"), {

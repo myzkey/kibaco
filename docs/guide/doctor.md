@@ -3,14 +3,14 @@
 Start with:
 
 ```sh
-kiban doctor
+kibaco doctor
 ```
 
 `doctor` checks:
 
 - Active config file
 - Proxy port availability
-- Reusable Kiban proxy state
+- Reusable Kibaco proxy state
 - Docker availability
 - Service references
 - Project working directories
@@ -21,17 +21,17 @@ kiban doctor
 Port conflict:
 
 ```sh
-kiban kill-port 8080 --force
+kibaco kill-port 8080 --force
 ```
 
 Stop Docker services:
 
 ```sh
-kiban services down
+kibaco services down
 ```
 
 Check service logs:
 
 ```sh
-kiban services logs postgres --follow
+kibaco services logs postgres --follow
 ```

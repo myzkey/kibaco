@@ -6,15 +6,15 @@ import { projectLogPath } from "./paths.js";
 import { writeProjectLog } from "./process.js";
 
 describe("process logs", () => {
-  const originalKibanHome = process.env.KIBAN_HOME;
+  const originalKibacoHome = process.env.KIBACO_HOME;
 
   afterEach(() => {
-    if (originalKibanHome === undefined) delete process.env.KIBAN_HOME;
-    else process.env.KIBAN_HOME = originalKibanHome;
+    if (originalKibacoHome === undefined) delete process.env.KIBACO_HOME;
+    else process.env.KIBACO_HOME = originalKibacoHome;
   });
 
   it("writes project logs as text and jsonl under the workspace", async () => {
-    process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-logs-"));
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-logs-"));
 
     writeProjectLog("demo", "web", "stdout", "ready\n", { maxBytes: 1024, maxFiles: 2 });
 
@@ -30,7 +30,7 @@ describe("process logs", () => {
   });
 
   it("rotates project logs when they exceed max bytes", async () => {
-    process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-logs-"));
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-logs-"));
 
     writeProjectLog("demo", "api", "stderr", "first line\n", { maxBytes: 60, maxFiles: 2 });
     writeProjectLog("demo", "api", "stderr", "second line with enough bytes to rotate\n", { maxBytes: 60, maxFiles: 2 });

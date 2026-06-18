@@ -5,15 +5,15 @@ import { afterEach, describe, expect, it } from "vitest";
 import { consumeRestartRequests, requestProjectRestart } from "./restart.js";
 
 describe("restart requests", () => {
-  const originalKibanHome = process.env.KIBAN_HOME;
+  const originalKibacoHome = process.env.KIBACO_HOME;
 
   afterEach(() => {
-    if (originalKibanHome === undefined) delete process.env.KIBAN_HOME;
-    else process.env.KIBAN_HOME = originalKibanHome;
+    if (originalKibacoHome === undefined) delete process.env.KIBACO_HOME;
+    else process.env.KIBACO_HOME = originalKibacoHome;
   });
 
   it("stores and consumes restart requests by workspace", async () => {
-    process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-restart-"));
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-restart-"));
 
     await requestProjectRestart("demo", "web");
 

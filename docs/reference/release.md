@@ -1,6 +1,6 @@
 # Release
 
-Kiban uses Changesets to automate npm releases from `main`.
+Kibaco uses Changesets to automate npm releases from `main`.
 
 ## One-time Setup
 

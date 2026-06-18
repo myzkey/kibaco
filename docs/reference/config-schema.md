@@ -18,14 +18,14 @@
 - `workspace`: Name used for Docker container names
 - `proxyPort`: Local proxy port
 - `log`: Per-project log rotation settings
-- `services`: Docker services Kiban can manage
+- `services`: Docker services Kibaco can manage
 - `projects`: Local app commands and URL routes
 
 Project logs are stored under:
 
 ```text
-~/.kiban/logs/{workspace}/{project}.log
-~/.kiban/logs/{workspace}/{project}.jsonl
+~/.kibaco/logs/{workspace}/{project}.log
+~/.kibaco/logs/{workspace}/{project}.jsonl
 ```
 
 ## Project

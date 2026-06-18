@@ -5,12 +5,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { proxyConfigSchema } from "./types.js";
 import { buildInitialProxyConfig, findProxyConfig, loadProxyConfig, normalizeProxyConfig, writeInitialProxyConfig } from "./config.js";
 
-describe("kiban config", () => {
-  const originalKibanHome = process.env.KIBAN_HOME;
+describe("kibaco config", () => {
+  const originalKibacoHome = process.env.KIBACO_HOME;
 
   afterEach(() => {
-    if (originalKibanHome === undefined) delete process.env.KIBAN_HOME;
-    else process.env.KIBAN_HOME = originalKibanHome;
+    if (originalKibacoHome === undefined) delete process.env.KIBACO_HOME;
+    else process.env.KIBACO_HOME = originalKibacoHome;
   });
 
   it("parses a minimal proxy config", () => {
@@ -65,7 +65,7 @@ describe("kiban config", () => {
   });
 
   it("infers defaults from a local server file", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-infer-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-infer-"));
     await fs.writeFile(
       path.join(root, "server.mjs"),
       'server.listen(Number(process.env.PORT ?? 43110), "127.0.0.1");\n'
@@ -86,7 +86,7 @@ describe("kiban config", () => {
   });
 
   it("infers defaults from package scripts", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-infer-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-infer-"));
     await fs.writeFile(path.join(root, "pnpm-lock.yaml"), "");
     await fs.writeJson(path.join(root, "package.json"), {
       name: "@demo/admin-app",
@@ -108,7 +108,7 @@ describe("kiban config", () => {
   });
 
   it("infers package manager, framework command, and port from env files", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-env-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-env-"));
     await fs.writeFile(path.join(root, "bun.lock"), "");
     await fs.writeJson(path.join(root, "package.json"), {
       name: "studio",
@@ -131,7 +131,7 @@ describe("kiban config", () => {
   });
 
   it("infers backend commands", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-backend-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-backend-"));
     await fs.writeFile(path.join(root, "Gemfile"), "gem 'rails'\n");
     await fs.ensureDir(path.join(root, "config"));
     await fs.writeFile(path.join(root, "config", "puma.rb"), 'port ENV.fetch("PORT") { 4010 }\n');
@@ -148,7 +148,7 @@ describe("kiban config", () => {
   });
 
   it("infers multiple projects from monorepo app folders", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-monorepo-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-monorepo-"));
     await fs.writeFile(path.join(root, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n");
     await fs.writeFile(path.join(root, "pnpm-lock.yaml"), "");
     await fs.ensureDir(path.join(root, "apps", "web"));
@@ -181,7 +181,7 @@ describe("kiban config", () => {
   });
 
   it("infers services from compose files", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-compose-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-compose-"));
     await fs.writeJson(path.join(root, "package.json"), {
       name: "with-db",
       scripts: {
@@ -243,7 +243,7 @@ describe("kiban config", () => {
   });
 
   it("infers service health checks and project dependencies from compose and env", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-compose-health-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-compose-health-"));
     await fs.writeJson(path.join(root, "package.json"), {
       name: "with-urls",
       scripts: {
@@ -290,8 +290,8 @@ describe("kiban config", () => {
   });
 
   it("stores workspace config outside the project and resolves from child directories", async () => {
-    process.env.KIBAN_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-home-"));
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kiban-config-"));
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-config-"));
     const nested = path.join(root, "apps", "web");
     await fs.ensureDir(nested);
     const configPath = await writeInitialProxyConfig(
@@ -322,7 +322,7 @@ describe("kiban config", () => {
       ]
     });
 
-    await expect(fs.pathExists(path.join(root, "kiban.config.json"))).resolves.toBe(false);
+    await expect(fs.pathExists(path.join(root, "kibaco.config.json"))).resolves.toBe(false);
     await expect(findProxyConfig(nested)).resolves.toBe(configPath);
     const loaded = await loadProxyConfig(nested);
     expect(loaded.config.workspace).toBe("demo");

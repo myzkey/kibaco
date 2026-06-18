@@ -1,5 +1,5 @@
 {
-  "name": "kiban",
+  "name": "kibaco",
   "version": "0.0.1",
   "description": "An AI-friendly local development stack manager.",
   "type": "module",
@@ -13,7 +13,7 @@
     "url": "https://github.com/myzkey/kiban/issues"
   },
   "bin": {
-    "kiban": "./dist/cli.js"
+    "kibaco": "./dist/cli.js"
   },
   "files": [
     "dist",
