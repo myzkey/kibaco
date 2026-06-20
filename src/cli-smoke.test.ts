@@ -75,6 +75,28 @@ describe("cli smoke", () => {
     );
   });
 
+  it("prints doctor --json as a structured environment report", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+    const output = await runModernCommand(["doctor", "--json"]);
+
+    expect(JSON.parse(output)).toEqual(
+      expect.objectContaining({
+        workspace: "smoke",
+        proxyPort: 8080,
+        services: [expect.objectContaining({ name: "postgres" })],
+        projects: [
+          expect.objectContaining({
+            name: "web",
+            url: "http://web.localhost:8080",
+            target: "http://localhost:3000"
+          })
+        ],
+        issues: expect.arrayContaining([expect.objectContaining({ code: "config_found" })])
+      })
+    );
+  });
+
   it("prints services status --json", async () => {
     const cwd = await fixtureDir();
     process.chdir(cwd);
@@ -160,9 +182,11 @@ describe("cli smoke", () => {
     const help = program.helpInformation();
 
     expect(help).toContain("dev");
+    expect(help).toContain("export");
     expect(help).toContain("restart");
     expect(help).toContain("logs");
     expect(help).toContain("doctor");
+    expect(help).toContain("open [project]");
     expect(help).not.toContain("legacy");
     expect(help).not.toContain("up [options]");
     expect(help).not.toContain("status [options]");
@@ -177,6 +201,7 @@ async function runModernCommand(args: string[]) {
   const program = new Command();
   program.exitOverride();
   registerModernCommands(program);
+  registerStackCommands(program);
   await program.parseAsync(["node", "kibaco", ...args]);
   return lines.join("\n");
 }
