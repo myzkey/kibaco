@@ -20,6 +20,11 @@ type WorkspaceIndex = {
   }>;
 };
 
+type ConfigOverride = Partial<Omit<ProxyConfig, "projects" | "services">> & {
+  projects?: Array<Partial<ProxyProjectConfig> & { name: string }>;
+  services?: Array<Partial<ServiceConfig> & { name: string }>;
+};
+
 export async function findProxyConfig(startDir = process.cwd()): Promise<string | null> {
   return (await findProxyWorkspace(startDir))?.configPath ?? null;
 }
@@ -30,7 +35,7 @@ export async function loadProxyConfig(startDir = process.cwd()): Promise<{ path:
 
   const raw = await fs.readFile(workspace.configPath, "utf8");
   const parsed = JSON.parse(raw) as unknown;
-  const result = proxyConfigSchema.safeParse(parsed);
+  const result = proxyConfigSchema.safeParse(await applyRepoLocalOverride(parsed, workspace.root));
   if (!result.success) {
     throw new ConfigError(`Invalid Kibaco workspace config: ${result.error.issues.map((issue) => issue.message).join(", ")}`);
   }
@@ -538,6 +543,62 @@ function removeUndefined<T extends Record<string, unknown>>(value: T) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function applyRepoLocalOverride(config: unknown, root: string) {
+  const overridePath = await findRepoLocalOverride(root);
+  if (!overridePath) return config;
+  const override = await readConfigOverride(overridePath);
+  return mergeConfigOverride(config, override);
+}
+
+async function findRepoLocalOverride(root: string) {
+  for (const fileName of ["kibaco.yaml", "kibaco.yml", "kibaco.json"]) {
+    const candidate = path.join(root, fileName);
+    if (await fs.pathExists(candidate)) return candidate;
+  }
+  return null;
+}
+
+async function readConfigOverride(filePath: string): Promise<ConfigOverride> {
+  const text = await fs.readFile(filePath, "utf8");
+  const parsed = filePath.endsWith(".json") ? (JSON.parse(text) as unknown) : (YAML.parse(text) as unknown);
+  if (!isRecord(parsed)) throw new ConfigError(`Invalid Kibaco override config: ${filePath}`);
+  return parsed as ConfigOverride;
+}
+
+function mergeConfigOverride(config: unknown, override: ConfigOverride) {
+  if (!isRecord(config)) return override;
+  const merged = {
+    ...config,
+    ...removeUndefined({
+      workspace: override.workspace,
+      proxyPort: override.proxyPort,
+      log: override.log ? { ...(isRecord(config.log) ? config.log : {}), ...override.log } : undefined
+    }),
+    services: mergeNamedList(config.services, override.services),
+    projects: mergeNamedList(config.projects, override.projects)
+  };
+  return removeUndefined(merged);
+}
+
+function mergeNamedList<T extends { name: string }>(base: unknown, override: Array<Partial<T> & { name: string }> | undefined) {
+  const baseItems = Array.isArray(base) ? base.filter(isRecord).map((item) => ({ ...item })) : [];
+  if (!override) return baseItems;
+  const byName = new Map<string, Record<string, unknown>>();
+  const order: string[] = [];
+  for (const item of baseItems) {
+    const name = typeof item.name === "string" ? item.name : undefined;
+    if (!name) continue;
+    byName.set(name, item);
+    order.push(name);
+  }
+  for (const item of override) {
+    if (!item.name) continue;
+    if (!byName.has(item.name)) order.push(item.name);
+    byName.set(item.name, { ...(byName.get(item.name) ?? {}), ...removeUndefined(item) });
+  }
+  return order.map((name) => byName.get(name)).filter((item): item is Record<string, unknown> => Boolean(item));
 }
 
 export function defaultInitialProxyConfig(): ProxyConfig {

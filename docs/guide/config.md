@@ -35,6 +35,24 @@ Kibaco stores workspace config outside the project, under `~/.kibaco`. That conf
 }
 ```
 
+## Repo-local overrides
+
+Add `kibaco.yaml`, `kibaco.yml`, or `kibaco.json` at the workspace root to override the stored config without rerunning `kibaco init`.
+
+```yaml
+proxyPort: 18080
+projects:
+  - name: web
+    target: http://localhost:4000
+    command: pnpm dev -- --port 4000
+services:
+  - name: postgres
+    env:
+      POSTGRES_DB: local_app
+```
+
+Projects and services are merged by `name`, so a repo-local file can override just the fields that differ.
+
 ## Projects
 
 Each project describes one local app process and the URL Kibaco should expose.

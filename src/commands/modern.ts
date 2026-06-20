@@ -2,6 +2,7 @@ import readline from "node:readline/promises";
 import type { Command } from "commander";
 import open from "open";
 import { buildInitialProxyConfig, findProxyProject, loadProxyConfig, writeInitialProxyConfig } from "../config.js";
+import { buildProxyDoctorReport } from "../doctor.js";
 import { runDev } from "../dev.js";
 import { assertProxyPortAvailable } from "../proxy-runtime.js";
 import { getServiceStatuses, showServiceLogs, startServices, stopServices } from "../service-runtime.js";
@@ -81,6 +82,35 @@ export function registerModernCommands(program: Command) {
       }));
       if (options.json) return printJson({ urls: rows });
       for (const row of rows) console.log(`${row.name}\t${row.url}\t-> ${row.target}`);
+    });
+
+  program
+    .command("status")
+    .option("--json", "Print JSON.")
+    .description("Show workspace, service, and project status.")
+    .action(async (options) => {
+      const { path, config } = await loadProxyConfig();
+      const report = await buildProxyDoctorReport(path, config);
+      if (options.json) {
+        printJson(report);
+        if (report.issues.some((issue) => issue.level === "error")) process.exitCode = 1;
+        return;
+      }
+
+      console.log(`workspace\t${report.workspace}`);
+      console.log(`proxy\tlocalhost:${report.proxyPort}`);
+      if (report.services.length > 0) {
+        console.log("services");
+        for (const service of report.services) console.log(`  ${service.name}\t${service.status}`);
+      }
+      if (report.projects.length > 0) {
+        console.log("projects");
+        for (const project of report.projects) console.log(`  ${project.name}\t${project.status}\t${project.url}\t-> ${project.target}`);
+      }
+      const warnings = report.issues.filter((issue) => issue.level === "warn").length;
+      const errors = report.issues.filter((issue) => issue.level === "error").length;
+      console.log(`issues\t${errors} error(s), ${warnings} warning(s)`);
+      if (errors > 0) process.exitCode = 1;
     });
 
   program

@@ -270,9 +270,11 @@ Project stdout/stderr is written to log files but is not streamed to the termina
 ```sh
 kibaco doctor
 kibaco doctor --json
+kibaco status
+kibaco status --json
 ```
 
-Check the active config, proxy port, Docker availability, service references, project working directories, service status, project URLs, and target reachability.
+Check the active config, proxy port, Docker availability, service references, project working directories, service status, project URLs, and target reachability. Use `status` for a compact current-state view.
 
 ```sh
 kibaco list

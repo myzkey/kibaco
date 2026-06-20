@@ -443,4 +443,80 @@ describe("kibaco config", () => {
     expect(loaded.config.workspace).toBe("demo");
     await expect(fs.realpath(loaded.config.projects[0]?.cwd ?? "")).resolves.toBe(await fs.realpath(nested));
   });
+
+  it("applies repo-local overrides by name", async () => {
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-override-"));
+    await fs.ensureDir(path.join(root, "apps", "web"));
+    const configPath = await writeInitialProxyConfig(
+      undefined,
+      {
+        workspace: "demo",
+        proxyPort: 8088,
+        projectName: "web",
+        host: "web.localhost",
+        target: "http://localhost:3000",
+        command: "pnpm dev",
+        cwd: "apps/web"
+      },
+      root
+    );
+    await fs.writeJson(configPath, {
+      workspace: "demo",
+      proxyPort: 8088,
+      services: [
+        {
+          name: "postgres",
+          image: "postgres:16",
+          ports: ["5432:5432"],
+          env: {
+            POSTGRES_DB: "app"
+          }
+        }
+      ],
+      projects: [
+        {
+          name: "web",
+          host: "web.localhost",
+          target: "http://localhost:3000",
+          command: "pnpm dev",
+          cwd: "apps/web",
+          services: ["postgres"]
+        }
+      ]
+    });
+    await fs.writeFile(
+      path.join(root, "kibaco.yaml"),
+      [
+        "proxyPort: 18080",
+        "services:",
+        "  - name: postgres",
+        "    env:",
+        "      POSTGRES_DB: local_app",
+        "projects:",
+        "  - name: web",
+        "    target: http://localhost:4000",
+        "    command: pnpm dev -- --port 4000"
+      ].join("\n")
+    );
+
+    const loaded = await loadProxyConfig(path.join(root, "apps", "web"));
+
+    expect(loaded.config.proxyPort).toBe(18080);
+    expect(loaded.config.services[0]).toEqual(
+      expect.objectContaining({
+        name: "postgres",
+        image: "postgres:16",
+        env: { POSTGRES_DB: "local_app" }
+      })
+    );
+    expect(loaded.config.projects[0]).toEqual(
+      expect.objectContaining({
+        name: "web",
+        host: "web.localhost",
+        target: "http://localhost:4000",
+        command: "pnpm dev -- --port 4000"
+      })
+    );
+  });
 });
