@@ -46,6 +46,35 @@ describe("cli smoke", () => {
     expect(output).toContain("web\thttp://web.localhost:8080\t-> http://localhost:3000");
   });
 
+  it("prints available urls when open is called without a project", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+    const output = await runModernCommand(["open"]);
+
+    expect(output).toContain("web\thttp://web.localhost:8080");
+  });
+
+  it("exports a shareable environment view", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+    const output = await runModernCommand(["export"]);
+
+    expect(JSON.parse(output)).toEqual(
+      expect.objectContaining({
+        workspace: "smoke",
+        proxyPort: 8080,
+        services: [expect.objectContaining({ name: "postgres" })],
+        projects: [
+          expect.objectContaining({
+            name: "web",
+            url: "http://web.localhost:8080",
+            target: "http://localhost:3000"
+          })
+        ]
+      })
+    );
+  });
+
   it("prints services status --json", async () => {
     const cwd = await fixtureDir();
     process.chdir(cwd);

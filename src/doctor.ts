@@ -3,10 +3,16 @@ import { isDockerRunning, serviceRunning } from "./docker.js";
 import { getPortUsage } from "./ports.js";
 import { isKibacoProxyRunning } from "./proxy-runtime.js";
 import { proxyUrl, targetPort } from "./proxy.js";
-import type { DoctorIssue, ProxyConfig } from "./types.js";
+import type { DoctorIssue, DoctorReport, ProxyConfig, RuntimeStatus } from "./types.js";
 
 export async function runProxyDoctor(configPath: string, config: ProxyConfig): Promise<DoctorIssue[]> {
+  return (await buildProxyDoctorReport(configPath, config)).issues;
+}
+
+export async function buildProxyDoctorReport(configPath: string, config: ProxyConfig): Promise<DoctorReport> {
   const issues: DoctorIssue[] = [{ level: "ok", code: "config_found", message: `Kibaco workspace config found at ${configPath}` }];
+  const services: DoctorReport["services"] = [];
+  const projects: DoctorReport["projects"] = [];
 
   const proxyUsage = await getPortUsage(config.proxyPort);
   if (!proxyUsage?.pid) {
@@ -45,8 +51,12 @@ export async function runProxyDoctor(configPath: string, config: ProxyConfig): P
   }
 
   for (const service of config.services) {
-    if (!dockerRunning) continue;
+    if (!dockerRunning) {
+      services.push({ name: service.name, status: "unknown" });
+      continue;
+    }
     const running = await serviceRunning(config, service);
+    services.push({ name: service.name, status: running ? "running" : "stopped" });
     issues.push({
       level: running ? "ok" : "warn",
       code: running ? "service_running" : "service_stopped",
@@ -77,9 +87,11 @@ export async function runProxyDoctor(configPath: string, config: ProxyConfig): P
       });
     }
 
+    let projectStatus: RuntimeStatus = "stopped";
     const port = targetPort(project.target);
     if (port) {
       const usage = await getPortUsage(port);
+      if (usage?.pid) projectStatus = "running";
       issues.push(
         usage?.pid
           ? { level: "ok", code: "target_port_listening", message: `${project.name}: target port ${port} is listening.` }
@@ -88,6 +100,13 @@ export async function runProxyDoctor(configPath: string, config: ProxyConfig): P
     }
 
     const reachable = await targetReachable(project.target);
+    if (reachable) projectStatus = "running";
+    projects.push({
+      name: project.name,
+      status: projectStatus,
+      url: proxyUrl(config, project.host),
+      target: project.target
+    });
     issues.push(
       reachable
         ? { level: "ok", code: "target_reachable", message: `${project.name}: target is reachable at ${project.target}.` }
@@ -100,7 +119,13 @@ export async function runProxyDoctor(configPath: string, config: ProxyConfig): P
     );
   }
 
-  return issues;
+  return {
+    workspace: config.workspace,
+    proxyPort: config.proxyPort,
+    services,
+    projects,
+    issues
+  };
 }
 
 async function targetReachable(target: string) {

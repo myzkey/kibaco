@@ -92,3 +92,19 @@ export type DoctorIssue = {
   message: string;
   suggestion?: string;
 };
+
+export type DoctorReport = {
+  workspace: string;
+  proxyPort: number;
+  services: Array<{
+    name: string;
+    status: RuntimeStatus;
+  }>;
+  projects: Array<{
+    name: string;
+    status: RuntimeStatus;
+    url: string;
+    target: string;
+  }>;
+  issues: DoctorIssue[];
+};

@@ -57,6 +57,14 @@ kibaco urls
 kibaco urls --json
 ```
 
+## `kibaco export`
+
+Print a shareable JSON view of services, projects, commands, and URLs.
+
+```sh
+kibaco export
+```
+
 ## `kibaco doctor`
 
 Check config, ports, Docker services, and targets.
@@ -65,6 +73,8 @@ Check config, ports, Docker services, and targets.
 kibaco doctor
 kibaco doctor --json
 ```
+
+`--json` prints a structured report with `workspace`, `proxyPort`, `services`, `projects`, and diagnostic `issues`.
 
 ## `kibaco ports`
 
@@ -102,9 +112,10 @@ kibaco proxy
 
 ## `kibaco open`
 
-Open a configured project URL in the browser.
+List configured project URLs, or open one in the browser.
 
 ```sh
+kibaco open
 kibaco open web
 ```
 

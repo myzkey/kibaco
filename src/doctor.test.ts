@@ -80,4 +80,50 @@ describe("doctor", () => {
 
     expect(issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "proxy_reusable" }), expect.objectContaining({ code: "service_missing", level: "error" })]));
   });
+
+  it("builds an AI-friendly structured report", async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-doctor-"));
+    serviceRunning.mockResolvedValue(true);
+    getPortUsage.mockImplementation(async (port: number) => (port === 3000 ? { port, command: "node", pid: 42 } : null));
+    const { buildProxyDoctorReport } = await import("./doctor.js");
+
+    const report = await buildProxyDoctorReport(path.join(cwd, "config.json"), {
+      workspace: "demo",
+      proxyPort: 8080,
+      services: [
+        {
+          name: "postgres",
+          image: "postgres:16",
+          ports: ["5432:5432"]
+        }
+      ],
+      projects: [
+        {
+          name: "web",
+          host: "web.localhost",
+          target: "http://localhost:3000",
+          command: "pnpm dev",
+          cwd,
+          services: ["postgres"]
+        }
+      ]
+    });
+
+    expect(report).toEqual(
+      expect.objectContaining({
+        workspace: "demo",
+        proxyPort: 8080,
+        services: [{ name: "postgres", status: "running" }],
+        projects: [
+          {
+            name: "web",
+            status: "running",
+            url: "http://web.localhost:8080",
+            target: "http://localhost:3000"
+          }
+        ],
+        issues: expect.arrayContaining([expect.objectContaining({ code: "service_running" })])
+      })
+    );
+  });
 });

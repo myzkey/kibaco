@@ -84,6 +84,26 @@ export function registerModernCommands(program: Command) {
     });
 
   program
+    .command("export")
+    .description("Print a shareable JSON view of this development environment.")
+    .action(async () => {
+      const { config } = await loadProxyConfig();
+      printJson({
+        workspace: config.workspace,
+        proxyPort: config.proxyPort,
+        services: config.services,
+        projects: config.projects.map((project) => ({
+          name: project.name,
+          url: proxyUrl(config, project.host),
+          target: project.target,
+          command: project.command,
+          cwd: project.cwd,
+          services: project.services ?? []
+        }))
+      });
+    });
+
+  program
     .command("dev")
     .argument("[projects...]")
     .option("--select", "Choose projects to start interactively.")
@@ -207,10 +227,14 @@ export function registerModernCommands(program: Command) {
 
   program
     .command("open")
-    .argument("<project>")
-    .description("Open a configured project URL in the browser.")
-    .action(async (name) => {
+    .argument("[project]")
+    .description("List configured project URLs or open one in the browser.")
+    .action(async (name: string | undefined) => {
       const { config } = await loadProxyConfig();
+      if (!name) {
+        for (const project of config.projects) console.log(`${project.name}\t${proxyUrl(config, project.host)}`);
+        return;
+      }
       const project = findProxyProject(config, name);
       const url = proxyUrl(config, project.host);
       await open(url);
