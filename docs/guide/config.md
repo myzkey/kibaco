@@ -32,7 +32,8 @@ Commit `kibaco.config.example.json` and the JSON Schema so humans, AI coding ass
       "target": "http://localhost:3000",
       "command": "pnpm dev",
       "cwd": ".",
-      "services": ["postgres"]
+      "services": ["postgres"],
+      "cacheDirs": [".next", "node_modules/.cache"]
     }
   ]
 }
@@ -99,6 +100,7 @@ Each project describes one local app process and the URL Kibaco should expose.
 - `command`: Shell command for the app process
 - `cwd`: Working directory for the command
 - `services`: Docker service names that should be started before the project
+- `cacheDirs`: Optional project-relative cache directories removed by `kibaco clean` and `kibaco restart --force`
 
 ## Services
 

@@ -1,12 +1,13 @@
 import type { ChildProcess } from "node:child_process";
+import { cleanProjectCache } from "./clean.js";
 import { spawnStreamingProject, stopProcess, stopProcesses } from "./process.js";
-import { getPortUsage } from "./ports.js";
+import { getPortUsage, killPort } from "./ports.js";
 import { targetPort } from "./proxy.js";
 import { assertProxyPortUsable, closeProxyHandle, startOrReuseProxy } from "./proxy-runtime.js";
 import { startProjectServices } from "./service-runtime.js";
 import { kibacoError } from "./errors.js";
 import { projectLogPath } from "./paths.js";
-import { ALL_PROJECTS_RESTART, consumeRestartRequests } from "./restart.js";
+import { ALL_PROJECTS_RESTART, consumeRestartRequestDetails } from "./restart.js";
 import type { ProxyConfig } from "./types.js";
 
 export async function runDev(config: ProxyConfig, options: { projects?: string[]; streamLogs?: boolean } = {}) {
@@ -60,18 +61,21 @@ export async function runDev(config: ProxyConfig, options: { projects?: string[]
   }, 500);
 
   async function handleRestartRequests() {
-    const requests = await consumeRestartRequests(config.workspace);
+    const requests = await consumeRestartRequestDetails(config.workspace);
     if (requests.length === 0 || shuttingDown) return;
-    const requestedNames = requests.includes(ALL_PROJECTS_RESTART) ? activeProjects.map((project) => project.name) : requests;
+    const shouldRestartAll = requests.some((request) => request.projectName === ALL_PROJECTS_RESTART);
+    const forceAll = requests.some((request) => request.projectName === ALL_PROJECTS_RESTART && request.force);
+    const requestedNames = shouldRestartAll ? activeProjects.map((project) => project.name) : requests.map((request) => request.projectName);
     for (const projectName of [...new Set(requestedNames)]) {
       if (!activeProjects.some((project) => project.name === projectName)) continue;
-      await restartProject(projectName);
+      const force = forceAll || requests.some((request) => request.projectName === projectName && request.force);
+      await restartProject(projectName, { force });
     }
   }
 
-  async function restartProject(projectName: string) {
+  async function restartProject(projectName: string, options: { force?: boolean } = {}) {
     console.log("");
-    console.log(`Restarting ${projectName}...`);
+    console.log(`Restarting ${projectName}${options.force ? " with force..." : "..."}`);
     restarting.add(projectName);
     const child = children.get(projectName);
     if (child && child.exitCode === null) {
@@ -79,8 +83,23 @@ export async function runDev(config: ProxyConfig, options: { projects?: string[]
       await waitForExit(child, 5_000);
     }
     children.delete(projectName);
+    if (options.force) await prepareForcedProjectRestart(projectName);
     restarting.delete(projectName);
     startProject(projectName);
+  }
+
+  async function prepareForcedProjectRestart(projectName: string) {
+    const project = activeProjects.find((item) => item.name === projectName);
+    if (!project) return;
+    const cleanResult = await cleanProjectCache(project);
+    if (cleanResult.removed.length > 0) console.log(`  cleaned: ${cleanResult.removed.join(", ")}`);
+    const port = targetPort(project.target);
+    if (!port) return;
+    const usage = await killPort(port);
+    if (usage?.pid) {
+      console.log(`  killed pid ${usage.pid} on port ${port}`);
+      await waitForPortRelease(port, 2_000);
+    }
   }
 
   const shutdown = async (code: number) => {
@@ -138,5 +157,14 @@ async function assertProjectTargetPortsAvailable(config: ProxyConfig) {
         `Stop it or run \`kibaco kill-port ${port} --force\`.`,
       3
     );
+  }
+}
+
+async function waitForPortRelease(port: number, timeoutMs: number) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const usage = await getPortUsage(port);
+    if (!usage?.pid) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
