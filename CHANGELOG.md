@@ -1,5 +1,15 @@
 # kibaco
 
+## 0.0.4
+
+### Patch Changes
+
+- Add project cache cleanup and improve config tooling.
+
+  - Add `kibaco clean` and `kibaco restart --force` for framework cache cleanup and target port recovery.
+  - Add configurable project `cacheDirs` plus doctor warnings for stale caches.
+  - Add safer config editing commands and update notifications for local CLI usage.
+
 ## 0.0.3
 
 ### Patch Changes
