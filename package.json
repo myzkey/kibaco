@@ -1,6 +1,6 @@
 {
   "name": "kibaco",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "An AI-friendly local development stack manager.",
   "type": "module",
   "packageManager": "pnpm@10.14.0",
