@@ -138,7 +138,7 @@ This makes it easier to share the current environment state with AI tools or tea
 ## Main Features
 
 - Start services, project commands, and the local reverse proxy with `kibaco dev`
-- Open stable local URLs such as `http://web.localhost:8080`
+- Open stable local URLs such as `http://my-app-web.localhost:8080`
 - Start Docker services before app commands
 - Reuse an already-running Kibaco proxy
 - Inspect ports, services, projects, and target reachability with `kibaco doctor`
@@ -253,6 +253,8 @@ http://web.localhost:8080
 http://api.localhost:8080
 ```
 
+When `kibaco init` infers hosts automatically, it prefixes them with the workspace directory, such as `my-app-web.localhost`, so common project names like `web`, `api`, or `docs` do not collide across workspaces.
+
 Health checks currently support TCP, HTTP, and command probes:
 
 ```json
@@ -338,6 +340,7 @@ kibaco restart --all
 Restart project processes managed by the running `kibaco dev`.
 
 ```sh
+kibaco config import-compose docker-compose.yml --attach web
 kibaco services up
 kibaco services restart postgres
 kibaco services status
@@ -345,7 +348,14 @@ kibaco services logs postgres --tail 200 --follow
 kibaco services down
 ```
 
-Manage Docker services for the current workspace.
+Import Compose services into Kibaco config and manage Docker services for the current workspace.
+
+```sh
+kibaco config set-service redis --image redis:7 --port 6379:6379
+kibaco config set-service postgres --env POSTGRES_DB=app --env POSTGRES_PASSWORD=postgres
+kibaco config attach-service web redis postgres
+kibaco config detach-service web redis
+```
 
 ```sh
 kibaco proxy

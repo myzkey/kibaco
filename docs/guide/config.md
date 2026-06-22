@@ -85,6 +85,10 @@ kibaco config validate
 kibaco config format
 kibaco config list-routes
 kibaco config set-target web http://localhost:3004
+kibaco config set-service redis --image redis:7 --port 6379:6379
+kibaco config set-service postgres --env POSTGRES_DB=app --env POSTGRES_PASSWORD=postgres
+kibaco config attach-service web redis postgres
+kibaco config detach-service web redis
 kibaco explain
 ```
 

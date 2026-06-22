@@ -3,6 +3,8 @@
 Kibaco exposes stable local URLs through a reverse proxy.
 By default, Kibaco prefers port `8080`, but `kibaco init` chooses another available proxy port when `8080` is already used by one of the inferred project targets or another local process. Run `kibaco urls` to see the saved URLs for your workspace.
 
+Inferred hosts are prefixed with the workspace directory, for example `my-app-web.localhost` or `my-app-docs.localhost`, to avoid collisions with common project names in other workspaces. Explicit `host` values in config are used as-is.
+
 ```json
 {
   "proxyPort": 8080,

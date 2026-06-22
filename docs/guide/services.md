@@ -15,6 +15,21 @@ It reads service images, ports, environment, volumes, and `depends_on`. For comm
 
 Services inferred from a Compose file are started and stopped through Docker Compose. This lets Compose resolve `.env`, `env_file`, variable substitution, networks, volumes, and other service details. Kibaco still starts application commands itself and routes them through its local proxy.
 
+If the workspace already exists, import Compose services without editing `.kibaco/config.json` directly:
+
+```sh
+kibaco config import-compose docker-compose.yml --attach web
+```
+
+For one-off service edits, update the service and then attach or detach it from projects:
+
+```sh
+kibaco config set-service redis --image redis:7 --port 6379:6379
+kibaco config set-service postgres --env POSTGRES_DB=app --env POSTGRES_PASSWORD=postgres
+kibaco config attach-service web redis postgres
+kibaco config detach-service web redis
+```
+
 ```sh
 kibaco services up
 kibaco services restart postgres

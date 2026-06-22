@@ -29,6 +29,19 @@ type ConfigOverride = Partial<Omit<ProxyConfig, "projects" | "services">> & {
   services?: Array<Partial<ServiceConfig> & { name: string }>;
 };
 
+export type ServiceEdit = {
+  image?: string;
+  ports?: string[];
+  env?: Record<string, string>;
+  volumes?: string[];
+  dependsOn?: string[];
+  composeFile?: string;
+  replacePorts?: boolean;
+  replaceEnv?: boolean;
+  replaceVolumes?: boolean;
+  replaceDependsOn?: boolean;
+};
+
 export async function findProxyConfig(startDir = process.cwd()): Promise<string | null> {
   return (await findProxyWorkspace(startDir))?.configPath ?? null;
 }
@@ -146,11 +159,11 @@ export async function buildInitialProxyConfig(answers: InitialProxyConfigAnswers
   const hasProjectOverride = ["projectName", "host", "target", "command", "cwd"].some((key) => key in providedAnswers);
   const projects =
     !hasProjectOverride
-      ? inferredProjects
+      ? prefixInferredProjectHosts(inferredProjects, resolved.workspace ?? defaults.workspace)
       : [
           {
             name: resolved.projectName ?? defaults.projectName,
-            host: resolved.host ?? defaults.host,
+            host: resolved.host ?? localProjectHost(resolved.workspace ?? defaults.workspace, resolved.projectName ?? defaults.projectName),
             target: resolved.target ?? defaults.target,
             command: resolved.command ?? defaults.command,
             cwd: resolved.cwd ?? defaults.cwd,
@@ -216,6 +229,103 @@ export async function updateProjectTarget(projectName: string, targetUrl: string
   return { path: workspace.configPath, projectName, before, after: targetUrl, valid };
 }
 
+export async function importComposeServices(
+  composeFile: string,
+  options: { attachProject?: string; replace?: boolean; startDir?: string } = {}
+) {
+  const startDir = options.startDir ?? process.cwd();
+  const workspace = await findProxyWorkspace(startDir);
+  if (!workspace) throw new ConfigError("Kibaco workspace not found. Run `kibaco init` from the workspace root first.");
+
+  const composePath = path.resolve(startDir, expandHome(composeFile));
+  const services = await readComposeServices(composePath);
+  if (services.length === 0) throw new ConfigError(`No image-backed services found in ${composePath}.`);
+
+  const raw = await readJsonConfig(workspace.configPath);
+  const config = proxyConfigSchema.parse(raw);
+  const importedNames = services.map((service) => service.name);
+  const servicesByName = new Map(config.services.map((service) => [service.name, service]));
+  for (const service of services) {
+    if (!options.replace && servicesByName.has(service.name)) continue;
+    servicesByName.set(service.name, service);
+  }
+  config.services = [
+    ...config.services.map((service) => servicesByName.get(service.name)).filter((service): service is ServiceConfig => Boolean(service)),
+    ...services.filter((service) => !config.services.some((existing) => existing.name === service.name))
+  ];
+
+  if (options.attachProject) {
+    const project = config.projects.find((entry) => entry.name === options.attachProject);
+    if (!project) throw new ConfigError(`Project not found: ${options.attachProject}`);
+    project.services = [...new Set([...(project.services ?? []), ...importedNames])];
+  }
+
+  const valid = proxyConfigSchema.safeParse(config).success;
+  await fs.writeJson(workspace.configPath, config, { spaces: 2 });
+  return { path: workspace.configPath, services: importedNames, attachedProject: options.attachProject, valid };
+}
+
+export async function updateServiceConfig(serviceName: string, edit: ServiceEdit, startDir = process.cwd()) {
+  const workspace = await findProxyWorkspace(startDir);
+  if (!workspace) throw new ConfigError("Kibaco workspace not found. Run `kibaco init` from the workspace root first.");
+  const raw = await readJsonConfig(workspace.configPath);
+  const config = proxyConfigSchema.parse(raw);
+  const index = config.services.findIndex((service) => service.name === serviceName);
+  if (index === -1 && !edit.image) throw new ConfigError(`Service not found: ${serviceName}. Pass --image to create it.`);
+
+  const before = index === -1 ? undefined : config.services[index];
+  const current = before ?? {
+    name: serviceName,
+    image: edit.image ?? "",
+    ports: [],
+    env: {},
+    volumes: [],
+    dependsOn: []
+  };
+  const next: ServiceConfig = {
+    ...current,
+    image: edit.image ?? current.image,
+    ports: mergeStringList(current.ports ?? [], edit.ports, Boolean(edit.replacePorts)),
+    env: edit.env ? (edit.replaceEnv ? edit.env : { ...(current.env ?? {}), ...edit.env }) : current.env,
+    volumes: mergeStringList(current.volumes ?? [], edit.volumes, Boolean(edit.replaceVolumes)),
+    dependsOn: mergeStringList(current.dependsOn ?? [], edit.dependsOn, Boolean(edit.replaceDependsOn)),
+    composeFile: edit.composeFile ?? current.composeFile
+  };
+
+  if (index === -1) config.services.push(next);
+  else config.services[index] = next;
+
+  const valid = proxyConfigSchema.safeParse(config).success;
+  await fs.writeJson(workspace.configPath, config, { spaces: 2 });
+  return { path: workspace.configPath, serviceName, created: index === -1, before, after: next, valid };
+}
+
+export async function updateProjectServiceLinks(
+  projectName: string,
+  serviceNames: string[],
+  action: "attach" | "detach" | "set",
+  startDir = process.cwd()
+) {
+  const workspace = await findProxyWorkspace(startDir);
+  if (!workspace) throw new ConfigError("Kibaco workspace not found. Run `kibaco init` from the workspace root first.");
+  const raw = await readJsonConfig(workspace.configPath);
+  const config = proxyConfigSchema.parse(raw);
+  const project = config.projects.find((entry) => entry.name === projectName);
+  if (!project) throw new ConfigError(`Project not found: ${projectName}`);
+  for (const serviceName of serviceNames) {
+    if (!config.services.some((service) => service.name === serviceName)) throw new ConfigError(`Service not found: ${serviceName}`);
+  }
+
+  const before = [...(project.services ?? [])];
+  if (action === "set") project.services = [...new Set(serviceNames)];
+  if (action === "attach") project.services = [...new Set([...before, ...serviceNames])];
+  if (action === "detach") project.services = before.filter((serviceName) => !serviceNames.includes(serviceName));
+
+  const valid = proxyConfigSchema.safeParse(config).success;
+  await fs.writeJson(workspace.configPath, config, { spaces: 2 });
+  return { path: workspace.configPath, projectName, before, after: project.services ?? [], valid };
+}
+
 async function resolveProxyPort(preferredPort: number, options: { explicit: boolean; projects: InferredProject[] }) {
   if (options.explicit) return preferredPort;
   const targetPorts = new Set(options.projects.map((project) => targetPort(project.target)).filter((port): port is number => Boolean(port)));
@@ -246,7 +356,7 @@ async function inferInitialProxyConfigDefaults(rootDir: string): Promise<Require
     workspace,
     proxyPort: 8080,
     projectName,
-    host: `${projectName}.localhost`,
+    host: localProjectHost(workspace, projectName),
     target: `http://localhost:${port}`,
     command,
     cwd: "."
@@ -275,7 +385,7 @@ async function inferProject(workspaceRoot: string, projectRoot: string, services
   const port = await inferTargetPort(projectRoot, command);
   return {
     name: projectName,
-    host: `${projectName}.localhost`,
+    host: localProjectHost(path.basename(workspaceRoot), projectName),
     target: `http://localhost:${port}`,
     command,
     cwd: relativeCwd(workspaceRoot, projectRoot),
@@ -286,6 +396,32 @@ async function inferProject(workspaceRoot: string, projectRoot: string, services
 function inferProjectNameFallback(projectRoot: string) {
   if (fs.existsSync(path.join(projectRoot, "server.mjs")) || fs.existsSync(path.join(projectRoot, "server.js"))) return "web";
   return path.basename(projectRoot);
+}
+
+function prefixInferredProjectHosts(projects: InferredProject[], workspace: string) {
+  return projects.map((project) => ({
+    ...project,
+    host: localProjectHost(workspace, project.name)
+  }));
+}
+
+function localProjectHost(workspace: string, projectName: string) {
+  const workspaceLabel = localHostLabel(workspace);
+  const projectLabel = localHostLabel(projectName);
+  const hostLabel = projectLabel === workspaceLabel || projectLabel.startsWith(`${workspaceLabel}-`) ? projectLabel : `${workspaceLabel}-${projectLabel}`;
+  return `${hostLabel}.localhost`;
+}
+
+function localHostLabel(value: string) {
+  return (
+    value
+      .replace(/^@/, "")
+      .replace(/[/?#:[\]@!$&'()*+,;=._~]+/g, "-")
+      .replace(/[^a-zA-Z0-9-]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase() || "app"
+  );
 }
 
 async function findProjectRoots(root: string) {
@@ -479,7 +615,10 @@ async function readIfExists(filePath: string) {
 async function inferComposeServices(rootDir: string) {
   const composePath = await findComposeFile(rootDir);
   if (!composePath) return [];
+  return readComposeServices(composePath);
+}
 
+async function readComposeServices(composePath: string): Promise<ServiceConfig[]> {
   const parsed = YAML.parse(await fs.readFile(composePath, "utf8")) as unknown;
   if (!isRecord(parsed) || !isRecord(parsed.services)) return [];
 
@@ -677,6 +816,11 @@ function mergeNamedList<T extends { name: string }>(base: unknown, override: Arr
     byName.set(item.name, { ...(byName.get(item.name) ?? {}), ...removeUndefined(item) });
   }
   return order.map((name) => byName.get(name)).filter((item): item is Record<string, unknown> => Boolean(item));
+}
+
+function mergeStringList(current: string[], next: string[] | undefined, replace: boolean) {
+  if (!next) return current;
+  return replace ? [...new Set(next)] : [...new Set([...current, ...next])];
 }
 
 export function defaultInitialProxyConfig(): ProxyConfig {

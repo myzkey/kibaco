@@ -21,7 +21,7 @@ kibaco open web
 ## Why Kibaco
 
 - One command to start the local stack
-- Stable local URLs such as `http://web.localhost:8080`
+- Stable local URLs such as `http://my-app-web.localhost:8080`
 - Docker service startup and health checks before app commands
 - Proxy reuse when a Kibaco proxy is already running
 - Diagnostics for ports, Docker services, config, and targets

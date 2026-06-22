@@ -4,6 +4,7 @@ import { registerModernCommands } from "./commands/modern.js";
 import { registerStackCommands } from "./commands/stack.js";
 import { registerSystemCommands } from "./commands/system.js";
 import { error as printError } from "./output.js";
+import { notifyIfUpdateAvailable } from "./update-notifier.js";
 import { packageVersion } from "./version.js";
 
 const program = new Command();
@@ -12,6 +13,10 @@ program
   .name("kibaco")
   .description("Start local app commands, Docker services, and localhost URLs with one command.")
   .version(packageVersion());
+
+program.hook("preAction", async () => {
+  await notifyIfUpdateAvailable();
+});
 
 registerModernCommands(program);
 registerStackCommands(program);

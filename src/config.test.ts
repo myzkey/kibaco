@@ -8,9 +8,12 @@ import {
   discoverProxyConfig,
   findProxyConfig,
   formatProxyConfig,
+  importComposeServices,
   loadProxyConfig,
   normalizeProxyConfig,
+  updateProjectServiceLinks,
   updateProjectTarget,
+  updateServiceConfig,
   validateProxyConfig,
   writeInitialProxyConfig
 } from "./config.js";
@@ -95,7 +98,7 @@ describe("kibaco config", () => {
     expect(config.projects[0]).toEqual(
       expect.objectContaining({
         name: "web",
-        host: "web.localhost",
+        host: `${path.basename(root).toLowerCase()}-web.localhost`,
         target: "http://localhost:43110",
         command: "node server.mjs",
         cwd: "."
@@ -118,7 +121,7 @@ describe("kibaco config", () => {
     expect(config.projects[0]).toEqual(
       expect.objectContaining({
         name: "admin-app",
-        host: "admin-app.localhost",
+        host: `${path.basename(root).toLowerCase()}-admin-app.localhost`,
         target: "http://localhost:5173",
         command: "pnpm dev"
       })
@@ -141,7 +144,7 @@ describe("kibaco config", () => {
     expect(config.projects[0]).toEqual(
       expect.objectContaining({
         name: "studio",
-        host: "studio.localhost",
+        host: `${path.basename(root).toLowerCase()}-studio.localhost`,
         target: "http://localhost:6123",
         command: "bun vite --host 127.0.0.1"
       })
@@ -216,17 +219,40 @@ describe("kibaco config", () => {
     expect(config.projects).toEqual([
       expect.objectContaining({
         name: "api",
+        host: `${path.basename(root).toLowerCase()}-api.localhost`,
         cwd: "apps/api",
         command: "pnpm dev:api",
         target: "http://localhost:5173"
       }),
       expect.objectContaining({
         name: "web",
+        host: `${path.basename(root).toLowerCase()}-web.localhost`,
         cwd: "apps/web",
         command: "pnpm dev",
         target: "http://localhost:3000"
       })
     ]);
+  });
+
+  it("prefixes inferred docs hosts with the workspace directory to avoid collisions", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "skyhub-tms-alfresa-"));
+    await fs.writeFile(path.join(root, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n");
+    await fs.ensureDir(path.join(root, "apps", "docs"));
+    await fs.writeJson(path.join(root, "apps", "docs", "package.json"), {
+      name: "docs",
+      scripts: {
+        dev: "vite --host 127.0.0.1"
+      }
+    });
+
+    const config = await buildInitialProxyConfig({}, root);
+
+    expect(config.projects[0]).toEqual(
+      expect.objectContaining({
+        name: "docs",
+        host: `${path.basename(root).toLowerCase()}-docs.localhost`
+      })
+    );
   });
 
   it("infers services from compose files", async () => {
@@ -498,6 +524,115 @@ describe("kibaco config", () => {
     await expect(fs.readJson(configPath)).resolves.toEqual(
       expect.objectContaining({
         projects: [expect.objectContaining({ name: "web", target: "http://localhost:3004" })]
+      })
+    );
+  });
+
+  it("imports compose services and attaches them to a project", async () => {
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-import-compose-"));
+    const configPath = await writeInitialProxyConfig(
+      undefined,
+      {
+        workspace: "demo",
+        proxyPort: 8088,
+        projectName: "web",
+        host: "web.localhost",
+        target: "http://localhost:3000",
+        command: "pnpm dev",
+        cwd: "."
+      },
+      root
+    );
+    await fs.writeFile(
+      path.join(root, "docker-compose.yml"),
+      [
+        "services:",
+        "  db:",
+        "    image: postgres:16",
+        "    ports:",
+        '      - "5432:5432"',
+        "    environment:",
+        "      POSTGRES_PASSWORD: postgres",
+        "  studio:",
+        "    image: supabase/studio:latest",
+        "    depends_on:",
+        "      - db"
+      ].join("\n")
+    );
+
+    await expect(importComposeServices("docker-compose.yml", { attachProject: "web", startDir: root })).resolves.toEqual(
+      expect.objectContaining({
+        services: ["db", "studio"],
+        attachedProject: "web",
+        valid: true
+      })
+    );
+    await expect(fs.readJson(configPath)).resolves.toEqual(
+      expect.objectContaining({
+        services: [
+          expect.objectContaining({ name: "db", image: "postgres:16", composeFile: path.join(root, "docker-compose.yml") }),
+          expect.objectContaining({ name: "studio", image: "supabase/studio:latest", dependsOn: ["db"] })
+        ],
+        projects: [expect.objectContaining({ name: "web", services: ["db", "studio"] })]
+      })
+    );
+  });
+
+  it("creates services and edits project service links", async () => {
+    process.env.KIBACO_HOME = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-home-"));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-service-edit-"));
+    const configPath = await writeInitialProxyConfig(
+      undefined,
+      {
+        workspace: "demo",
+        proxyPort: 8088,
+        projectName: "web",
+        host: "web.localhost",
+        target: "http://localhost:3000",
+        command: "pnpm dev",
+        cwd: "."
+      },
+      root
+    );
+
+    await expect(
+      updateServiceConfig(
+        "redis",
+        {
+          image: "redis:7",
+          ports: ["6379:6379"],
+          env: { REDIS_PASSWORD: "secret" },
+          volumes: ["redis-data:/data"]
+        },
+        root
+      )
+    ).resolves.toEqual(expect.objectContaining({ serviceName: "redis", created: true, valid: true }));
+    await expect(updateServiceConfig("redis", { ports: ["16379:6379"], replacePorts: true }, root)).resolves.toEqual(
+      expect.objectContaining({
+        serviceName: "redis",
+        created: false,
+        after: expect.objectContaining({ ports: ["16379:6379"] })
+      })
+    );
+    await expect(updateProjectServiceLinks("web", ["redis"], "attach", root)).resolves.toEqual(
+      expect.objectContaining({ before: [], after: ["redis"], valid: true })
+    );
+    await expect(updateProjectServiceLinks("web", ["redis"], "detach", root)).resolves.toEqual(
+      expect.objectContaining({ before: ["redis"], after: [], valid: true })
+    );
+    await expect(fs.readJson(configPath)).resolves.toEqual(
+      expect.objectContaining({
+        services: [
+          expect.objectContaining({
+            name: "redis",
+            image: "redis:7",
+            ports: ["16379:6379"],
+            env: { REDIS_PASSWORD: "secret" },
+            volumes: ["redis-data:/data"]
+          })
+        ],
+        projects: [expect.objectContaining({ name: "web", services: [] })]
       })
     );
   });

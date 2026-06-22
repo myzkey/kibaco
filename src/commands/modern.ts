@@ -7,8 +7,11 @@ import {
   discoverProxyConfig,
   findProxyProject,
   formatProxyConfig,
+  importComposeServices,
   loadProxyConfig,
+  updateProjectServiceLinks,
   updateProjectTarget,
+  updateServiceConfig,
   validateProxyConfig,
   writeExampleProxyConfig,
   writeInitialProxyConfig
@@ -343,6 +346,9 @@ export function registerModernCommands(program: Command) {
       console.log("Common commands:");
       console.log("* kibaco config validate");
       console.log("* kibaco config list-routes");
+      console.log("* kibaco config import-compose docker-compose.yml --attach <projectName>");
+      console.log("* kibaco config set-service <serviceName> --image <image>");
+      console.log("* kibaco config attach-service <projectName> <serviceName>");
       console.log("* kibaco config set-target <projectName> <targetUrl>");
       console.log("* kibaco dev");
       console.log("* kibaco doctor");
@@ -404,6 +410,94 @@ function registerConfigCommand(program: Command) {
       console.log(`Config file: ${result.path}`);
       console.log(`Config valid: ${result.valid}`);
     });
+
+  configCommand
+    .command("import-compose")
+    .argument("[composeFile]", "Compose file to import.", "docker-compose.yml")
+    .option("--attach <projectName>", "Attach imported services to a configured project.")
+    .option("--replace", "Replace existing services with the same names.")
+    .description("Import Docker Compose services into the Kibaco config.")
+    .action(async (composeFile: string, options) => {
+      const result = await importComposeServices(composeFile, {
+        attachProject: options.attach,
+        replace: Boolean(options.replace)
+      });
+      console.log(`Imported ${result.services.length} service(s): ${result.services.join(", ")}`);
+      if (result.attachedProject) console.log(`Attached to project: ${result.attachedProject}`);
+      console.log(`Config file: ${result.path}`);
+      console.log(`Config valid: ${result.valid}`);
+    });
+
+  configCommand
+    .command("set-service")
+    .argument("<serviceName>")
+    .option("--image <image>", "Set the Docker image. Required when creating a new service.")
+    .option("--port <mapping>", "Add a port mapping such as 5432:5432. Can be repeated.", collectValues, [])
+    .option("--replace-ports", "Replace existing port mappings instead of appending.")
+    .option("--env <key=value>", "Set an environment variable. Can be repeated.", collectValues, [])
+    .option("--replace-env", "Replace existing environment variables instead of merging.")
+    .option("--volume <mapping>", "Add a volume mapping. Can be repeated.", collectValues, [])
+    .option("--replace-volumes", "Replace existing volume mappings instead of appending.")
+    .option("--depends-on <service>", "Add a service dependency. Can be repeated.", collectValues, [])
+    .option("--replace-depends-on", "Replace existing dependencies instead of appending.")
+    .option("--compose-file <path>", "Mark this service as backed by a Compose file.")
+    .description("Create or update one Docker service in the Kibaco config.")
+    .action(async (serviceName: string, options) => {
+      const result = await updateServiceConfig(serviceName, {
+        image: options.image,
+        ports: options.port,
+        env: parseKeyValueOptions(options.env),
+        volumes: options.volume,
+        dependsOn: options.dependsOn,
+        composeFile: options.composeFile,
+        replacePorts: Boolean(options.replacePorts),
+        replaceEnv: Boolean(options.replaceEnv),
+        replaceVolumes: Boolean(options.replaceVolumes),
+        replaceDependsOn: Boolean(options.replaceDependsOn)
+      });
+      console.log(`${result.created ? "Created" : "Updated"} service "${result.serviceName}"`);
+      console.log(`Config file: ${result.path}`);
+      console.log(`Config valid: ${result.valid}`);
+    });
+
+  configCommand
+    .command("attach-service")
+    .argument("<projectName>")
+    .argument("<services...>")
+    .description("Attach one or more configured services to a project.")
+    .action(async (projectName: string, services: string[]) => {
+      const result = await updateProjectServiceLinks(projectName, services, "attach");
+      console.log(`Updated project "${result.projectName}" services: ${result.after.join(", ") || "-"}`);
+      console.log(`Config file: ${result.path}`);
+      console.log(`Config valid: ${result.valid}`);
+    });
+
+  configCommand
+    .command("detach-service")
+    .argument("<projectName>")
+    .argument("<services...>")
+    .description("Detach one or more services from a project.")
+    .action(async (projectName: string, services: string[]) => {
+      const result = await updateProjectServiceLinks(projectName, services, "detach");
+      console.log(`Updated project "${result.projectName}" services: ${result.after.join(", ") || "-"}`);
+      console.log(`Config file: ${result.path}`);
+      console.log(`Config valid: ${result.valid}`);
+    });
+}
+
+function collectValues(value: string, previous: string[]) {
+  return [...previous, value];
+}
+
+function parseKeyValueOptions(values: string[]) {
+  if (values.length === 0) return undefined;
+  return Object.fromEntries(
+    values.map((value) => {
+      const separator = value.indexOf("=");
+      if (separator <= 0) throw new Error(`Expected KEY=VALUE, got: ${value}`);
+      return [value.slice(0, separator), value.slice(separator + 1)];
+    })
+  );
 }
 
 type LogTarget = {

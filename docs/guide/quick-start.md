@@ -7,6 +7,7 @@ kibaco init
 ```
 
 Kibaco infers sensible defaults from package managers, `package.json`, dev scripts, `.env` ports, common frameworks, simple backend/server files, monorepo app folders, and Compose files when it can.
+Inferred local hostnames include the workspace directory as a prefix, such as `my-app-web.localhost`, to avoid collisions across repositories.
 
 Start the environment:
 

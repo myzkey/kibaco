@@ -154,6 +154,59 @@ describe("cli smoke", () => {
     expect(explainOutput).toContain("check Kibaco config before Caddy, nginx, docker-compose, or system proxy");
   });
 
+  it("imports compose services through a config command", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+    await fs.writeFile(
+      path.join(cwd, "docker-compose.yml"),
+      ["services:", "  redis:", "    image: redis:7", "    ports:", '      - "6379:6379"'].join("\n")
+    );
+
+    const output = await runModernCommand(["config", "import-compose", "docker-compose.yml", "--attach", "web"]);
+
+    expect(output).toContain("Imported 1 service(s): redis");
+    expect(output).toContain("Attached to project: web");
+    const listOutput = await runModernCommand(["list", "--json"]);
+    expect(JSON.parse(listOutput)).toEqual(
+      expect.objectContaining({
+        services: expect.arrayContaining([expect.objectContaining({ name: "redis", image: "redis:7" })]),
+        projects: [expect.objectContaining({ name: "web", services: expect.arrayContaining(["redis"]) })]
+      })
+    );
+  });
+
+  it("edits one service and project service links through config commands", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+
+    const setOutput = await runModernCommand([
+      "config",
+      "set-service",
+      "redis",
+      "--image",
+      "redis:7",
+      "--port",
+      "6379:6379",
+      "--env",
+      "REDIS_PASSWORD=secret"
+    ]);
+    expect(setOutput).toContain('Created service "redis"');
+
+    const attachOutput = await runModernCommand(["config", "attach-service", "web", "redis"]);
+    expect(attachOutput).toContain('Updated project "web" services: postgres, redis');
+
+    const detachOutput = await runModernCommand(["config", "detach-service", "web", "postgres"]);
+    expect(detachOutput).toContain('Updated project "web" services: redis');
+
+    const listOutput = await runModernCommand(["list", "--json"]);
+    expect(JSON.parse(listOutput)).toEqual(
+      expect.objectContaining({
+        services: expect.arrayContaining([expect.objectContaining({ name: "redis", env: { REDIS_PASSWORD: "secret" } })]),
+        projects: [expect.objectContaining({ name: "web", services: ["redis"] })]
+      })
+    );
+  });
+
   it("requests a project restart", async () => {
     const cwd = await fixtureDir();
     process.chdir(cwd);
