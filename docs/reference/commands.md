@@ -36,8 +36,22 @@ Ask the running `kibaco dev` process to restart project commands.
 
 ```sh
 kibaco restart web
+kibaco restart web --force
 kibaco restart --all
 ```
+
+Use `--force` when a project needs a hard refresh: Kibaco asks the running `kibaco dev` process to stop the project command, remove framework cache directories, free the target port, and start it again.
+
+## `kibaco clean`
+
+Remove framework cache directories for one project or all projects.
+
+```sh
+kibaco clean web
+kibaco clean --all
+```
+
+Kibaco detects common cache directories for Next.js, Vite, Docusaurus, and `node_modules/.cache`. Project `cacheDirs` entries are also removed.
 
 ## `kibaco list`
 

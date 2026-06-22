@@ -82,6 +82,8 @@ export function normalizeProxyConfig(config: ProxyConfig, baseDir = process.cwd(
     ),
     projects: config.projects.map((project) => ({
       ...project,
+      cacheDirs: [...new Set([...(project.cacheDirs ?? []), ...(project.cache_dirs ?? [])])],
+      cache_dirs: undefined,
       cwd: path.resolve(baseDir, expandHome(project.cwd))
     }))
   };

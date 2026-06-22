@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { getPortUsage } from "../ports.js";
+import { getPortUsage, killPort } from "../ports.js";
 import { ok } from "../output.js";
 
 export function registerSystemCommands(program: Command) {
@@ -13,7 +13,7 @@ export function registerSystemCommands(program: Command) {
       const usage = await getPortUsage(port);
       if (!usage?.pid) throw new Error(`No process found on port ${port}.`);
       if (!options.force) throw new Error(`Refusing to kill pid ${usage.pid} without --force.`);
-      process.kill(usage.pid, "SIGTERM");
-      ok(`Killed pid ${usage.pid} on port ${port}`);
+      const killed = await killPort(port);
+      ok(`Killed pid ${killed?.pid ?? usage.pid} on port ${port}`);
     });
 }

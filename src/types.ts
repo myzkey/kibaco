@@ -51,7 +51,9 @@ export const proxyProjectSchema = z.object({
   target: z.string().url(),
   command: z.string().min(1),
   cwd: z.string().default("."),
-  services: z.array(z.string()).default([]).optional()
+  services: z.array(z.string()).default([]).optional(),
+  cacheDirs: z.array(z.string()).default([]).optional(),
+  cache_dirs: z.array(z.string()).default([]).optional()
 });
 
 export const proxyConfigSchema = z.object({

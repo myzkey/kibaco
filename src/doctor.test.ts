@@ -126,4 +126,32 @@ describe("doctor", () => {
       })
     );
   });
+
+  it("warns when a framework cache is older than source files", async () => {
+    const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kibaco-doctor-"));
+    await fs.writeJson(path.join(cwd, "package.json"), { dependencies: { next: "15.0.0" } });
+    await fs.ensureDir(path.join(cwd, ".next"));
+    await fs.writeFile(path.join(cwd, "page.tsx"), "export default function Page() { return null; }");
+    const old = new Date(Date.now() - 60_000);
+    await fs.utimes(path.join(cwd, ".next"), old, old);
+    const { runProxyDoctor } = await import("./doctor.js");
+
+    const issues = await runProxyDoctor(path.join(cwd, "config.json"), {
+      workspace: "demo",
+      proxyPort: 8080,
+      services: [],
+      projects: [
+        {
+          name: "web",
+          host: "web.localhost",
+          target: "http://localhost:3000",
+          command: "pnpm dev",
+          cwd,
+          services: []
+        }
+      ]
+    });
+
+    expect(issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: "cache_stale", level: "warn" })]));
+  });
 });

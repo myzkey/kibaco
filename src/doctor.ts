@@ -1,4 +1,5 @@
 import fs from "fs-extra";
+import { projectHasStaleCache } from "./clean.js";
 import { isDockerRunning, serviceRunning } from "./docker.js";
 import { getPortUsage } from "./ports.js";
 import { isKibacoProxyRunning } from "./proxy-runtime.js";
@@ -78,6 +79,15 @@ export async function buildProxyDoctorReport(configPath: string, config: ProxyCo
 
     if (await fs.pathExists(project.cwd)) {
       issues.push({ level: "ok", code: "project_cwd_exists", message: `${project.name}: cwd exists.` });
+      const staleCache = await projectHasStaleCache(project);
+      if (staleCache) {
+        issues.push({
+          level: "warn",
+          code: "cache_stale",
+          message: `${project.name}: ${staleCache.directory} cache is older than source files.`,
+          suggestion: `Run kibaco clean ${project.name} or kibaco restart ${project.name} --force.`
+        });
+      }
     } else {
       issues.push({
         level: "error",

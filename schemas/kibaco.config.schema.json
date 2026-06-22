@@ -85,6 +85,22 @@
             "type": "string"
           },
           "default": []
+        },
+        "cacheDirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Project-relative cache directories removed by kibaco clean and kibaco restart --force."
+        },
+        "cache_dirs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Snake-case alias for cacheDirs."
         }
       },
       "required": ["name", "host", "target", "command"]

@@ -1,6 +1,7 @@
 import readline from "node:readline/promises";
 import type { Command } from "commander";
 import open from "open";
+import { cleanProjectCaches } from "../clean.js";
 import {
   buildInitialProxyConfig,
   discoverProxyConfig,
@@ -169,18 +170,35 @@ export function registerModernCommands(program: Command) {
     .command("restart")
     .argument("[project]")
     .option("--all", "Restart all configured projects.")
+    .option("--force", "Clean project caches and free the target port before restarting.")
     .description("Ask the running kibaco dev process to restart project commands.")
     .action(async (name: string | undefined, options) => {
       const { config } = await loadProxyConfig();
       if (!options.all && !name) throw new Error("Project name is required unless --all is used.");
       if (options.all) {
-        await requestProjectRestart(config.workspace, ALL_PROJECTS_RESTART);
-        ok("Restart requested for all projects");
+        await requestProjectRestart(config.workspace, ALL_PROJECTS_RESTART, { force: Boolean(options.force) });
+        ok(`Restart requested for all projects${options.force ? " with force" : ""}`);
         return;
       }
       findProxyProject(config, name ?? "");
-      await requestProjectRestart(config.workspace, name ?? "");
-      ok(`Restart requested for ${name}`);
+      await requestProjectRestart(config.workspace, name ?? "", { force: Boolean(options.force) });
+      ok(`Restart requested for ${name}${options.force ? " with force" : ""}`);
+    });
+
+  program
+    .command("clean")
+    .argument("[project]")
+    .option("--all", "Clean caches for all configured projects.")
+    .description("Remove framework cache directories for configured projects.")
+    .action(async (name: string | undefined, options) => {
+      const { config } = await loadProxyConfig();
+      if (!options.all && !name) throw new Error("Project name is required unless --all is used.");
+      const projects = options.all ? config.projects : [findProxyProject(config, name ?? "")];
+      const results = await cleanProjectCaches(projects);
+      for (const result of results) {
+        const removed = result.removed.length > 0 ? result.removed.join(", ") : "nothing";
+        console.log(`${result.project}: removed ${removed}`);
+      }
     });
 
   registerServicesCommand(program);

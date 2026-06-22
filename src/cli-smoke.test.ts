@@ -164,6 +164,27 @@ describe("cli smoke", () => {
     await expect(consumeRestartRequests("smoke")).resolves.toEqual(["web"]);
   });
 
+  it("requests a force restart", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+
+    const output = await runModernCommand(["restart", "web", "--force"]);
+
+    expect(output).toContain("Restart requested for web with force");
+  });
+
+  it("cleans project caches", async () => {
+    const cwd = await fixtureDir();
+    process.chdir(cwd);
+    await fs.writeJson(path.join(cwd, "package.json"), { dependencies: { next: "15.0.0" } });
+    await fs.ensureDir(path.join(cwd, ".next"));
+
+    const output = await runModernCommand(["clean", "web"]);
+
+    expect(output).toContain("web: removed");
+    await expect(fs.pathExists(path.join(cwd, ".next"))).resolves.toBe(false);
+  });
+
   it("requires an explicit logs target outside an interactive terminal", async () => {
     const cwd = await fixtureDir();
     process.chdir(cwd);
@@ -224,6 +245,7 @@ describe("cli smoke", () => {
     expect(help).toContain("dev");
     expect(help).toContain("export");
     expect(help).toContain("restart");
+    expect(help).toContain("clean");
     expect(help).toContain("status");
     expect(help).toContain("logs");
     expect(help).toContain("doctor");

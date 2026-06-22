@@ -39,6 +39,13 @@ export async function listListeningPorts(): Promise<PortUsage[]> {
   }
 }
 
+export async function killPort(port: number) {
+  const usage = await getPortUsage(port);
+  if (!usage?.pid) return null;
+  process.kill(usage.pid, "SIGTERM");
+  return usage;
+}
+
 export function parseListeningPorts(stdout: string): PortUsage[] {
   const rows: Array<PortUsage | null> = stdout
     .split("\n")
